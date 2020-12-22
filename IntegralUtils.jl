@@ -4,7 +4,33 @@ using LinearAlgebra
 
 export divergence, transform, create_weights, split_region, coeff
 
-function ∂(f::Function, var::Symbol, P₀::Array{T1, 1}; Δ::Number = 1e-3)::Union{Number, Array{T2, 1} where T2 <: Number} where T1 <: Number
+"""
+    ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
+
+Compute a partial derivative of `f` with respect to `var` at a point `P₀`.
+
+# Examples
+```
+julia> ∂((x, y, z) -> cos(x)sin(y)exp(z), :y, [π, 0, log(2)])
+-1.9999999999996667
+
+julia> ∂((x, y, z) -> cos(x)sin(y)exp(z), :y, [π, 0, log(2)]; Δ = 1e-9)
+-2.0
+
+julia> ∂((x, y, z) -> [x, y, z], :z, [1, 1, 1])
+3-element Array{Float64,1}:
+ 0.0
+ 0.0
+ 0.9999999999177334
+
+julia> ∂((u, v) -> [cos(u), sin(u), v], :u, [0, 1])
+3-element Array{Float64,1}:
+ -5.000444502911705e-7
+  0.9999999999998334
+  0.0
+```
+"""
+function ∂(f::Function, var::Symbol, P₀::Array{T1, 1}; Δ::Number = 1e-6)::Union{Number, Array{T2, 1} where T2 <: Number} where T1 <: Number
     if length(P₀) == 3
         limits = Dict(sym=>vec for (sym, vec) in
                 zip((:x, :y, :z), [Δ*Diagonal(ones((3, 3)))[3i-2:3i] for i in 1:3]))
@@ -15,24 +41,125 @@ function ∂(f::Function, var::Symbol, P₀::Array{T1, 1}; Δ::Number = 1e-3)::U
     return (f((P₀ + limits[var])...) - f(P₀...)) / Δ
 end
 
+"""
+    divergence(F::Function, P₀::Array{T, 1})::Number where T <: Number
 
-function divergence(𝐅::Function, P₀::Array{T, 1})::Number where T <: Number
-   return sum(hcat([∂(𝐅, sym, P₀) for sym in (:x, :y, :z)]...)' .* Diagonal(ones(3, 3)))
+Calculate the divergence of a vector field `F` at a point `P₀`.
+
+# Examples
+```
+julia> divergence((x, y, z) -> [z * cos(x), z * sin(y), z - cos(x+y)], [π, π, 1])
+4.998225722196992e-7
+
+julia> divergence((x, y, z) -> [z * cos(x), z * sin(y), z - cos(x+y)], [0, 0, 1])
+1.9999994998731165
+```
+"""
+function divergence(F::Function, P₀::Array{T, 1})::Number where T <: Number
+   return sum(hcat([∂(F, sym, P₀) for sym in (:x, :y, :z)]...)' .* Diagonal(ones(3, 3)))
 end
 
 
-function 𝐍(𝐫::Function, P₀::Array{T, 1})::Array{Number, 1} where T <: Number
-    𝐫ᵤ = ∂(𝐫, :u, P₀)
-    𝐫ᵥ = ∂(𝐫, :v, P₀)
-    return cross(𝐫ᵤ, 𝐫ᵥ)
+"""
+    normal(r::Function, P₀::Array{T, 1})::Array{Number, 1} where T <: Number
+
+Compute a normal vector to the surface parametrized by `r` at point `P₀`.
+
+# Examples
+```
+julia> normal((u, v) -> [cos(u)cos(v), sin(u)cos(v), sin(v)], [π/2, 0])
+3-element Array{Number,1}:
+ -5.000444502910872e-7
+  0.9999999999174001
+  5.000444502499502e-7
+
+julia> normal((u, v) -> [cos(u), sin(u), v], [π/2, 1])
+3-element Array{Number,1}:
+ -5.000444502500335e-7
+ 0.9999999998353001
+ 0.0
+```
+"""
+function normal(r::Function, P₀::Array{T, 1})::Array{Number, 1} where T <: Number
+    rᵤ = ∂(r, :u, P₀)
+    rᵥ = ∂(r, :v, P₀)
+    return cross(rᵤ, rᵥ)
 end
 
 
-function transform(𝐅::Function, 𝐫::Function, P₀::Array{T, 1})::Number where T <: Number
-   return dot(𝐅(𝐫(P₀...)...), 𝐍(𝐫, P₀))
+"""
+    transform(F::Function, r::Function, P₀::Array{T, 1})::Number where T <: Number
+
+Convert ``F(P₀)⋅dS`` to ``F(r(P₀))dudv``.
+
+# Examples
+```
+julia> transform((x, y, z) -> [x, y, z], (u, v) -> [cos(u)cos(v), sin(u)cos(v), sin(v)], [π/2, 0])
+0.9999999999174001
+
+julia> transform((x, y, z) -> [-y, x, 0], (u, v) -> [(cos(u) + 2)cos(v), (cos(u) + 2)sin(v), sin(u)], [0, 0])
+-4.500400052619784e-6
+```
+"""
+function transform(F::Function, r::Function, P₀::Array{T, 1})::Number where T <: Number
+   return dot(F(r(P₀...)...), normal(r, P₀))
 end
 
 
+"""
+    create_weights(ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
+
+Create a 3d matrix of weights according to composite simpson rule for triple integrals.
+
+# Examples
+```
+julia> create_weights(2, 2, 2)
+3×3×3 Array{Float64,3}:
+[:, :, 1] =
+ 1.0   4.0  1.0
+ 4.0  16.0  4.0
+ 1.0   4.0  1.0
+
+[:, :, 2] =
+  4.0  16.0   4.0
+ 16.0  64.0  16.0
+  4.0  16.0   4.0
+
+[:, :, 3] =
+ 1.0   4.0  1.0
+ 4.0  16.0  4.0
+ 1.0   4.0  1.0
+
+ julia> create_weights(6, 4, 2)
+ 7×5×3 Array{Float64,3}:
+ [:, :, 1] =
+  1.0   4.0  2.0   4.0  1.0
+  4.0  16.0  8.0  16.0  4.0
+  2.0   8.0  4.0   8.0  2.0
+  4.0  16.0  8.0  16.0  4.0
+  2.0   8.0  4.0   8.0  2.0
+  4.0  16.0  8.0  16.0  4.0
+  1.0   4.0  2.0   4.0  1.0
+
+ [:, :, 2] =
+   4.0  16.0   8.0  16.0   4.0
+  16.0  64.0  32.0  64.0  16.0
+   8.0  32.0  16.0  32.0   8.0
+  16.0  64.0  32.0  64.0  16.0
+   8.0  32.0  16.0  32.0   8.0
+  16.0  64.0  32.0  64.0  16.0
+   4.0  16.0   8.0  16.0   4.0
+
+ [:, :, 3] =
+  1.0   4.0  2.0   4.0  1.0
+  4.0  16.0  8.0  16.0  4.0
+  2.0   8.0  4.0   8.0  2.0
+  4.0  16.0  8.0  16.0  4.0
+  2.0   8.0  4.0   8.0  2.0
+  4.0  16.0  8.0  16.0  4.0
+  1.0   4.0  2.0   4.0  1.0
+```
+"""
 function create_weights(ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
     return vcat([1], 4 * ones(ξ - 2) - repeat([0, 2], (ξ - 2) ÷ 2), [4, 1]) .*
             vcat([1], 4 * ones(υ - 2) - repeat([0, 2], (υ - 2) ÷ 2), [4, 1])' .*
@@ -40,29 +167,162 @@ function create_weights(ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
 end
 
 
+"""
+    create_weights(μ::Int, ν::Int)::Array{Float64, 2}
+
+Create a 2d matrix of weights according to composite simpson rule for double integrals.
+
+# Examples
+```
+julia> create_weights(2, 2)
+3×3 Array{Float64,2}:
+ 1.0   4.0  1.0
+ 4.0  16.0  4.0
+ 1.0   4.0  1.0
+
+julia> create_weights(6, 4)
+7×5 Array{Float64,2}:
+ 1.0   4.0  2.0   4.0  1.0
+ 4.0  16.0  8.0  16.0  4.0
+ 2.0   8.0  4.0   8.0  2.0
+ 4.0  16.0  8.0  16.0  4.0
+ 2.0   8.0  4.0   8.0  2.0
+ 4.0  16.0  8.0  16.0  4.0
+ 1.0   4.0  2.0   4.0  1.0
+```
+"""
 function create_weights(μ::Int, ν::Int)::Array{Float64, 2}
     return vcat([1], 4 * ones(μ - 2) - repeat([0, 2], (μ - 2) ÷ 2), [4, 1]) .*
             vcat([1], 4 * ones(ν - 2) - repeat([0, 2], (ν - 2) ÷ 2), [4, 1])'
 end
 
 
-step(k, N, 𝒜) = k * 𝒜[2] / N + 𝒜[1] * (1 - k / N)
+"""
+    step(k::Int, N::Int, A::Tuple{Number, Number})::Float64
+
+Calculate a `k`th split point of interval `A`.
+
+# Examples
+```
+julia> step(2, 4, (0, 4))
+2.0
+
+julia> step(3, 6, (1, 4))
+2.5
+```
+"""
+step(k::Int, N::Int, A::Tuple{Number, Number})::Float64 = k * A[2] / N + A[1] * (1 - k / N)
 
 
-function split_region(𝒳::Tuple{Number, Number}, 𝒴::Tuple{Number, Number}, 𝒵::Tuple{Number, Number},
+"""
+    split_region(X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}, ξ::Int, υ::Int, ζ::Int)::Array{Array{Float64, 1}, 3}
+
+Divide a cuboid into points in 3d space.
+
+# Examples
+```
+julia> split_region((0, 1), (0, 1), (0, 1), 2, 2, 2)
+3×3×3 Array{Array{Float64,1},3}:
+[:, :, 1] =
+ [0.0, 0.0, 0.0]  [0.0, 0.5, 0.0]  [0.0, 1.0, 0.0]
+ [0.5, 0.0, 0.0]  [0.5, 0.5, 0.0]  [0.5, 1.0, 0.0]
+ [1.0, 0.0, 0.0]  [1.0, 0.5, 0.0]  [1.0, 1.0, 0.0]
+
+[:, :, 2] =
+ [0.0, 0.0, 0.5]  [0.0, 0.5, 0.5]  [0.0, 1.0, 0.5]
+ [0.5, 0.0, 0.5]  [0.5, 0.5, 0.5]  [0.5, 1.0, 0.5]
+ [1.0, 0.0, 0.5]  [1.0, 0.5, 0.5]  [1.0, 1.0, 0.5]
+
+[:, :, 3] =
+ [0.0, 0.0, 1.0]  [0.0, 0.5, 1.0]  [0.0, 1.0, 1.0]
+ [0.5, 0.0, 1.0]  [0.5, 0.5, 1.0]  [0.5, 1.0, 1.0]
+ [1.0, 0.0, 1.0]  [1.0, 0.5, 1.0]  [1.0, 1.0, 1.0]
+
+ julia> split_region((0, 1), (0, 1), (0, 1), 8, 4, 2)
+ 9×5×3 Array{Array{Float64,1},3}:
+ [:, :, 1] =
+  [0.0, 0.0, 0.0]    [0.0, 0.25, 0.0]    [0.0, 0.5, 0.0]    [0.0, 0.75, 0.0]    [0.0, 1.0, 0.0]
+  [0.125, 0.0, 0.0]  [0.125, 0.25, 0.0]  [0.125, 0.5, 0.0]  [0.125, 0.75, 0.0]  [0.125, 1.0, 0.0]
+  [0.25, 0.0, 0.0]   [0.25, 0.25, 0.0]   [0.25, 0.5, 0.0]   [0.25, 0.75, 0.0]   [0.25, 1.0, 0.0]
+  [0.375, 0.0, 0.0]  [0.375, 0.25, 0.0]  [0.375, 0.5, 0.0]  [0.375, 0.75, 0.0]  [0.375, 1.0, 0.0]
+  [0.5, 0.0, 0.0]    [0.5, 0.25, 0.0]    [0.5, 0.5, 0.0]    [0.5, 0.75, 0.0]    [0.5, 1.0, 0.0]
+  [0.625, 0.0, 0.0]  [0.625, 0.25, 0.0]  [0.625, 0.5, 0.0]  [0.625, 0.75, 0.0]  [0.625, 1.0, 0.0]
+  [0.75, 0.0, 0.0]   [0.75, 0.25, 0.0]   [0.75, 0.5, 0.0]   [0.75, 0.75, 0.0]   [0.75, 1.0, 0.0]
+  [0.875, 0.0, 0.0]  [0.875, 0.25, 0.0]  [0.875, 0.5, 0.0]  [0.875, 0.75, 0.0]  [0.875, 1.0, 0.0]
+  [1.0, 0.0, 0.0]    [1.0, 0.25, 0.0]    [1.0, 0.5, 0.0]    [1.0, 0.75, 0.0]    [1.0, 1.0, 0.0]
+
+ [:, :, 2] =
+  [0.0, 0.0, 0.5]    [0.0, 0.25, 0.5]    [0.0, 0.5, 0.5]    [0.0, 0.75, 0.5]    [0.0, 1.0, 0.5]
+  [0.125, 0.0, 0.5]  [0.125, 0.25, 0.5]  [0.125, 0.5, 0.5]  [0.125, 0.75, 0.5]  [0.125, 1.0, 0.5]
+  [0.25, 0.0, 0.5]   [0.25, 0.25, 0.5]   [0.25, 0.5, 0.5]   [0.25, 0.75, 0.5]   [0.25, 1.0, 0.5]
+  [0.375, 0.0, 0.5]  [0.375, 0.25, 0.5]  [0.375, 0.5, 0.5]  [0.375, 0.75, 0.5]  [0.375, 1.0, 0.5]
+  [0.5, 0.0, 0.5]    [0.5, 0.25, 0.5]    [0.5, 0.5, 0.5]    [0.5, 0.75, 0.5]    [0.5, 1.0, 0.5]
+  [0.625, 0.0, 0.5]  [0.625, 0.25, 0.5]  [0.625, 0.5, 0.5]  [0.625, 0.75, 0.5]  [0.625, 1.0, 0.5]
+  [0.75, 0.0, 0.5]   [0.75, 0.25, 0.5]   [0.75, 0.5, 0.5]   [0.75, 0.75, 0.5]   [0.75, 1.0, 0.5]
+  [0.875, 0.0, 0.5]  [0.875, 0.25, 0.5]  [0.875, 0.5, 0.5]  [0.875, 0.75, 0.5]  [0.875, 1.0, 0.5]
+  [1.0, 0.0, 0.5]    [1.0, 0.25, 0.5]    [1.0, 0.5, 0.5]    [1.0, 0.75, 0.5]    [1.0, 1.0, 0.5]
+
+ [:, :, 3] =
+  [0.0, 0.0, 1.0]    [0.0, 0.25, 1.0]    [0.0, 0.5, 1.0]    [0.0, 0.75, 1.0]    [0.0, 1.0, 1.0]
+  [0.125, 0.0, 1.0]  [0.125, 0.25, 1.0]  [0.125, 0.5, 1.0]  [0.125, 0.75, 1.0]  [0.125, 1.0, 1.0]
+  [0.25, 0.0, 1.0]   [0.25, 0.25, 1.0]   [0.25, 0.5, 1.0]   [0.25, 0.75, 1.0]   [0.25, 1.0, 1.0]
+  [0.375, 0.0, 1.0]  [0.375, 0.25, 1.0]  [0.375, 0.5, 1.0]  [0.375, 0.75, 1.0]  [0.375, 1.0, 1.0]
+  [0.5, 0.0, 1.0]    [0.5, 0.25, 1.0]    [0.5, 0.5, 1.0]    [0.5, 0.75, 1.0]    [0.5, 1.0, 1.0]
+  [0.625, 0.0, 1.0]  [0.625, 0.25, 1.0]  [0.625, 0.5, 1.0]  [0.625, 0.75, 1.0]  [0.625, 1.0, 1.0]
+  [0.75, 0.0, 1.0]   [0.75, 0.25, 1.0]   [0.75, 0.5, 1.0]   [0.75, 0.75, 1.0]   [0.75, 1.0, 1.0]
+  [0.875, 0.0, 1.0]  [0.875, 0.25, 1.0]  [0.875, 0.5, 1.0]  [0.875, 0.75, 1.0]  [0.875, 1.0, 1.0]
+  [1.0, 0.0, 1.0]    [1.0, 0.25, 1.0]    [1.0, 0.5, 1.0]    [1.0, 0.75, 1.0]    [1.0, 1.0, 1.0]
+```
+"""
+function split_region(X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number},
         ξ::Int, υ::Int, ζ::Int)::Array{Array{Float64, 1}, 3}
 
-    return [[step(x, ξ, 𝒳), step(y, υ, 𝒴), step(z, ζ, 𝒵)] for x in 0:ξ, y in 0:υ, z in 0:ζ]
+    return [[step(x, ξ, X), step(y, υ, Y), step(z, ζ, Z)] for x in 0:ξ, y in 0:υ, z in 0:ζ]
 end
 
 
-function split_region(𝒰::Tuple{Number, Number}, 𝒱::Tuple{Number, Number},
+"""
+    split_region(U::Tuple{Number, Number}, V::Tuple{Number, Number}, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
+
+Divide a rectangle into points in 2d space.
+
+# Examples
+```
+julia> split_region((0, 1), (0, 1), 2, 2)
+3×3 Array{Array{Float64,1},2}:
+ [0.0, 0.0]  [0.0, 0.5]  [0.0, 1.0]
+ [0.5, 0.0]  [0.5, 0.5]  [0.5, 1.0]
+ [1.0, 0.0]  [1.0, 0.5]  [1.0, 1.0]
+
+julia> split_region((0, 1), (0, 1), 4, 2)
+5×3 Array{Array{Float64,1},2}:
+ [0.0, 0.0]   [0.0, 0.5]   [0.0, 1.0]
+ [0.25, 0.0]  [0.25, 0.5]  [0.25, 1.0]
+ [0.5, 0.0]   [0.5, 0.5]   [0.5, 1.0]
+ [0.75, 0.0]  [0.75, 0.5]  [0.75, 1.0]
+ [1.0, 0.0]   [1.0, 0.5]   [1.0, 1.0]
+```
+"""
+function split_region(U::Tuple{Number, Number}, V::Tuple{Number, Number},
         μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
 
-    return [[step(u, μ, 𝒰), step(v, ν, 𝒱)] for u in 0:μ, v in 0:ν]
+    return [[step(u, μ, U), step(v, ν, V)] for u in 0:μ, v in 0:ν]
 end
 
+"""
+    coeff(A::Tuple{Number, Number}, n::Int)::Float64
 
-coeff(𝒜, n) = (𝒜[2] - 𝒜[1]) / (3 * n)
+Compute a coefficient for composite Simpson's rule with `n` midpoints and interval `A`.
+
+# Examples
+```
+julia> coeff((0, 1), 2)
+0.16666666666666666
+
+julia> coeff((0, 4), 4)
+0.3333333333333333
+```
+"""
+coeff(A::Tuple{Number, Number}, n::Int)::Float64 = (A[2] - A[1]) / (3 * n)
 
 end

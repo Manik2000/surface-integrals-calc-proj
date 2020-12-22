@@ -1,8 +1,10 @@
 module IntegralUtils
 
 using LinearAlgebra
+using Decimals
 
-export divergence, transform, create_weights, split_region, coeff, surface_integral
+export divergence, transform, create_weights,
+ split_region, coeff, surface_integral, round_float, parse_function
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
@@ -372,5 +374,56 @@ function surface_integral(F::Function, r::Function, U::Tuple{Number, Number}, V:
     return sum(transform.(F, r, points) .* weights) * prod([coeff(interval, steps)
             for (interval, steps) in zip((U, V), (μ, ν))])
 end
+
+"""
+    round_float(α::Float64, ϵ::Float64)::Union{Float64, Int}
+
+Round `α` to the same number of digits as `ϵ` or nearest integer with `ϵ` accuracy.
+
+# Examples
+```
+julia> round_float(π, 1e-12)
+3.14159265359
+
+julia> round_float(exp(1), 1e-3)
+2.718
+
+julia> round_float(1.999, 1e-3)
+2
+```
+"""
+round_float(α, ϵ) = abs(α - round(α)) < ϵ ? Int(round(α)) : round(α, digits = abs(Decimal(ϵ).q))
+
+"""
+    arguments(args::Symbol...)
+
+Parse arguments' symbols to a string.
+
+# Examples
+```
+julia> arguments(:u, :v)
+"(u, v)"
+
+julia> arguments(:x, :y, :z)
+"(x, y, z)"
+```
+"""
+arguments(args::Symbol...)::String = '(' * String(args[1]) * reduce(*, ", " .* String.(args[2:end])) * ')'
+
+"""
+    parse_function(name::Symbol, body::String, args::Symbol...)::Function
+
+Parse a body of a function and arguments' and function name's symbols to a actual function.
+
+# Examples
+```
+julia> parse_function(:f, "cos(x)sin(y)+exp(z)", :x, :y, :z)
+f (generic function with 1 method)
+
+julia> parse_function(:g, "u^2-cos(exp(1/v))", :u, :v)
+g (generic function with 1 method)
+```
+"""
+parse_function(name::Symbol, body::String, args::Symbol...)::Function = eval(Meta.parse(String(name) * arguments(args...) * "=" * body))
 
 end

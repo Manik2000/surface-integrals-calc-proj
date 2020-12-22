@@ -2,7 +2,7 @@ module IntegralUtils
 
 using LinearAlgebra
 
-export divergence, transform, create_weights, split_region, coeff
+export divergence, transform, create_weights, split_region, coeff, surface_integral
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
@@ -324,5 +324,53 @@ julia> coeff((0, 4), 4)
 ```
 """
 coeff(A::Tuple{Number, Number}, n::Int)::Float64 = (A[2] - A[1]) / (3 * n)
+
+
+"""
+    surface_integral(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}; ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
+
+Determine flux of vector field `F` through a cuboid using Gauss-Ostrogradski theorem and Simpson's rule for ``ξ⋅υ⋅ζ`` nodes.
+
+# Examples
+```
+julia> surface_integral((x, y, z) -> [x, y, z], (0, 1), (0, 1), (0, 1))
+3.0000000000163776
+
+julia> surface_integral((x, y, z) -> [-y, x, 0], (-1, 1), (-1, 1), (-1, 1))
+0.0
+```
+"""
+function surface_integral(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number};
+    ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
+
+    weights = create_weights(ξ, υ, ζ)
+    points = split_region(X, Y, Z, ξ, υ, ζ)
+    return sum(divergence.(F, points) .* weights) * prod([coeff(interval, steps)
+            for (interval, steps) in zip((X, Y, Z), (ξ, υ, ζ))])
+end
+
+
+"""
+    surface_integral(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number}; μ::Int = 2, ν::Int = 2)::Float64
+
+Determine flux of vector field `F` through a surface parametrized by `r` using Simpson's rule for ``μ⋅ν`` nodes.
+
+# Examples
+```
+julia> surface_integral((x, y, z) -> [-y, x, 0], (u, v) -> [(cos(u) + 2)cos(v), (cos(u) + 2)sin(v), sin(u)],  (0, 2π), (0, π/2))
+-1.1513612148289776e-5
+
+julia> surface_integral((x, y, z) -> [x, y, z], (u, v) -> [cos(u)cos(v), sin(u)cos(v), sin(v)], (0, 2π), (-π/2, π/2), 2, 8)
+12.56806186014683
+```
+"""
+function surface_integral(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number};
+        μ::Int = 2, ν::Int = 2)::Float64
+
+    weights = create_weights(μ, ν)
+    points = split_region(U, V, μ, ν)
+    return sum(transform.(F, r, points) .* weights) * prod([coeff(interval, steps)
+            for (interval, steps) in zip((U, V), (μ, ν))])
+end
 
 end

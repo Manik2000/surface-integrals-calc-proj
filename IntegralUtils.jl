@@ -1,10 +1,10 @@
-module IntegralUtils
+#module IntegralUtils
 
 using LinearAlgebra
 using Decimals
 
-export divergence, transform, create_weights,
- split_region, coeff, surface_integral, round_float, parse_function
+#export divergence, transform, create_weights,
+# split_region, coeff, surface_integral, round_float, parse_function
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
@@ -329,7 +329,7 @@ coeff(A::Tuple{Number, Number}, n::Int)::Float64 = (A[2] - A[1]) / (3 * n)
 
 
 """
-    surface_integral(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}; ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
+    ∯(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}; ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
 
 Determine flux of vector field `F` through a cuboid using Gauss-Ostrogradski theorem and Simpson's rule for ``ξ⋅υ⋅ζ`` nodes.
 
@@ -342,7 +342,7 @@ julia> surface_integral((x, y, z) -> [-y, x, 0], (-1, 1), (-1, 1), (-1, 1))
 0.0
 ```
 """
-function surface_integral(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number};
+function ∯(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number};
     ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
 
     weights = create_weights(ξ, υ, ζ)
@@ -353,7 +353,7 @@ end
 
 
 """
-    surface_integral(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number}; μ::Int = 2, ν::Int = 2)::Float64
+    ∯(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number}; μ::Int = 2, ν::Int = 2)::Float64
 
 Determine flux of vector field `F` through a surface parametrized by `r` using Simpson's rule for ``μ⋅ν`` nodes.
 
@@ -366,7 +366,7 @@ julia> surface_integral((x, y, z) -> [x, y, z], (u, v) -> [cos(u)cos(v), sin(u)c
 12.56806186014683
 ```
 """
-function surface_integral(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number};
+function ∯(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number};
         μ::Int = 2, ν::Int = 2)::Float64
 
     weights = create_weights(μ, ν)
@@ -374,6 +374,7 @@ function surface_integral(F::Function, r::Function, U::Tuple{Number, Number}, V:
     return sum(transform.(F, r, points) .* weights) * prod([coeff(interval, steps)
             for (interval, steps) in zip((U, V), (μ, ν))])
 end
+
 
 """
     round_float(α::Float64, ϵ::Float64)::Union{Float64, Int}
@@ -392,7 +393,8 @@ julia> round_float(1.999, 1e-3)
 2
 ```
 """
-round_float(α, ϵ) = abs(α - round(α)) < ϵ ? Int(round(α)) : round(α, digits = abs(Decimal(ϵ).q))
+round_float(α::Float64, ϵ::Float64)::Union{Int, ::Float64} = abs(α - round(α)) < ϵ ? Int(round(α)) : 2 + round(α, digits = abs(Decimal(ϵ).q))
+
 
 """
     arguments(args::Symbol...)
@@ -410,6 +412,7 @@ julia> arguments(:x, :y, :z)
 """
 arguments(args::Symbol...)::String = '(' * String(args[1]) * reduce(*, ", " .* String.(args[2:end])) * ')'
 
+
 """
     parse_function(name::Symbol, body::String, args::Symbol...)::Function
 
@@ -424,6 +427,63 @@ julia> parse_function(:g, "u^2-cos(exp(1/v))", :u, :v)
 g (generic function with 1 method)
 ```
 """
-parse_function(name::Symbol, body::String, args::Symbol...)::Function = eval(Meta.parse(String(name) * arguments(args...) * "=" * body))
+parse_function(body::String, args::Symbol...)::Function = eval(Meta.parse(arguments(args...) * "->" * body))
 
+
+"""
+    Φ(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}; ϵ::Number = 1e-3, n::Int = 1)::Union{::Int, ::Float64}
+
+Determine a flux of a vector field `F` through a cuboid.
+
+# Examples
+```
+julia> Φ((x, y, z) -> [x, y, z], (0, 1), (0, 1), (0, 1))
+2.9999999999958114
+
+julia> Φ((x, y, z) -> [-y, x, 0], (-1, 1), (-1, 1), (-1, 1))
+0.0
+```
+"""
+function Φ(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number};
+     ϵ::Number = 1e-3, n::Int = 1)::Union{::Int, ::Float64}
+    Φₙ = ∯(F, X, Y, Z; ξ = 2n, υ = 2n, ζ = 2n)
+    n += 1
+    Φₙ₊₁ = ∯(F, X, Y, Z; ξ = 2n, υ = 2n, ζ = 2n)
+    while abs(Φₙ₊₁ - Φₙ) > ϵ
+        n += 1
+        Φₙ, Φₙ₊₁ = Φₙ₊₁, ∯(F, X, Y, Z; ξ = 2n, υ = 2n, ζ = 2n)
+    end
+    return round_float(Φₙ₊₁, ϵ)
 end
+
+
+
+"""
+    Φ(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number}; ϵ::Number = 1e-3, n::Int = 1)::Union{::Int, Float64}
+
+Determine a flux of a vector field `F` through a surface parametrized by `r`.
+
+# Examples
+```
+julia> Φ((x, y, z) -> [-y, x, 0], (u, v) -> [(cos(u) + 2)cos(v), (cos(u) + 2)sin(v), sin(u)],  (0, 2π), (0, π/2))
+-9.869203248214035e-6
+
+julia> Φ((x, y, z) -> [x, y, z], (u, v) -> [cos(u)cos(v), sin(u)cos(v), sin(v)], (0, 2π), (-π/2, π/2))
+12.566373879290955
+```
+"""
+function Φ(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number};
+     ϵ::Number = 1e-3, n::Int = 1)::Union{::Int, ::Float64}
+    Φₙ = ∯(F, r, U, V; μ = 2n, ν = 2n)
+    n += 1
+    Φₙ₊₁ = ∯(F, r, U, V; μ = 2n, ν = 2n)
+    while abs(Φₙ₊₁ - Φₙ) > ϵ
+        n += 1
+        Φₙ, Φₙ₊₁ = Φₙ₊₁, ∯(F, r, U, V; μ = 2n, ν = 2n)
+    end
+    return round_float(Φₙ₊₁, ϵ)
+end
+
+
+
+#end

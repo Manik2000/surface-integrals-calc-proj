@@ -114,4 +114,54 @@ callback!(app,
         # @eval foo() = $(Meta.parse("x->x"))
 end
 
+
+callback!(app,
+        Output("surface_plot", "figure"),
+        Input("input", "value"),
+        Input("dropdown", "value"),
+        Input("u_range1i", "value"),
+        Input("u_range2i", "value"),
+        Input("v_range1i", "value"),
+        Input("v_range2i", "value")
+        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max
+            if dropdown_value == options_[1]
+                    try
+                        u_min = parse(Float64, u_min)
+                        u_max = parse(Float64, u_max)
+                        v_min = parse(Float64, v_min)
+                        v_max = parse(Float64, v_max)
+
+                    catch e
+                        u_min = v_min = 0
+                        u_max = v_max = 4
+                    end
+                    if (u_min > u_max) | (v_min > v_max)
+                        return Plot(surface(;
+                                x = [0],
+                                y = [0],
+                                z = [[0], [0]]))
+                    else
+                        N = 100  # interpolation parameter
+
+                        # xyz = split((strip(return_value, ['[', ']'])), ",")
+
+                        # X = parse_function("[" * string(xyz[1]) * "]", :u, :v)
+                        # Y = parse_function("[" * string(xyz[2]) * "]", :u, :v)
+                        # Z = parse_function("[" * string(xyz[3]) * "]", :u, :v)
+
+                        X(u, v) = v + u
+                        Y(u, v) = v - u
+                        Z(u, v) = v^2 + u^2
+
+                        rs = range(v_min, v_max, length=N)
+                        us = range(u_min, u_max, length=N)
+                        return Plot(surface(;
+                                x = X.(us', rs),
+                                y = Y.(us', rs),
+                                z = Z.(us', rs)))
+                    end
+            end
+        end
+
+
 run_server(app, "0.0.0.0")

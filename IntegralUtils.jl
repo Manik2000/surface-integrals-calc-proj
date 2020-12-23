@@ -1,10 +1,10 @@
-module IntegralUtils
+#module IntegralUtils
 
 using LinearAlgebra
 using Decimals
 
-export divergence, transform, create_weights,
- split_region, coeff, surface_integral, round_float, parse_function
+#export divergence, transform, create_weights,
+# split_region, coeff, surface_integral, round_float, parse_function
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
@@ -311,6 +311,18 @@ function split_region(U::Tuple{Number, Number}, V::Tuple{Number, Number},
     return [[step(u, μ, U), step(v, ν, V)] for u in 0:μ, v in 0:ν]
 end
 
+
+validate(A::Array{Float64, 1}, ϕ::Function, ψ::Function)::Float64 = ϕ(A[1]) <= A[2] <= ψ(A[1]) ? 1.0 : NaN
+
+
+function split_region(U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
+    Uᵢ = LinRange(U..., μ + 1)
+    Vᵢ = LinRange(min(ϕ.(Uᵢ)...), max(ψ.(Uᵢ)...), ν + 1)
+    R = [[u, v] for u in Uᵢ, v in Vᵢ]
+    return validate.(R, ϕ, ψ) .* R
+end
+
+
 """
     coeff(A::Tuple{Number, Number}, n::Int)::Float64
 
@@ -373,6 +385,17 @@ function ∯(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number
     points = split_region(U, V, μ, ν)
     return sum(transform.(F, r, points) .* weights) * prod([coeff(interval, steps)
             for (interval, steps) in zip((U, V), (μ, ν))])
+end
+
+
+function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
+        μ::Int = 2, ν::Int = 2)::Float64
+
+    weights = create_weights(μ, ν)
+    points = split_region(U, ϕ, ψ, μ, ν)
+    Uᵢ = LinRange(U..., μ)
+    return sum(replace!(transform.(F, r, points), NaN => 0) .* weights) * prod([coeff(interval, steps)
+            for (interval, steps) in zip((U, (min(ϕ.(Uᵢ)...), max(ψ.(Uᵢ)...))), (μ, ν))])
 end
 
 
@@ -485,5 +508,17 @@ function Φ(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number,
 end
 
 
-
+function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
+     ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
+    Φₙ = ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
+    n += 1
+    Φₙ₊₁ = ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
+    while abs(Φₙ₊₁ - Φₙ) > ϵ
+        n += 1
+        println(Φₙ)
+        Φₙ, Φₙ₊₁ = Φₙ₊₁, ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
+    end
+    return round_float(Φₙ₊₁, ϵ)
 end
+
+#end

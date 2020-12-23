@@ -91,7 +91,6 @@ callback!(app,
             value(g) = Φ((x, y, z) -> [x, y, z], g, (0, 1), (0, 1))
             return @eval ($value($p))
         end
-        # @eval foo() = $(Meta.parse("x->x"))
 end
 
 run_server(app, "0.0.0.0")

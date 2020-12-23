@@ -32,7 +32,27 @@ app.layout = html_div() do
                     dcc_input(id="input", type="text", style=Dict("width" => "20em"), value="[u + v, v - u, v^2 + u^2]"),
                     html_div(id="ranges"),
                     html_div(id="output_")
-                    ])
+                    ], style = (width = "48%", display = "inline-block", float = "left")),
+            html_div(
+                children=[
+                    dcc_graph(
+                        id = "surface_plot",
+                        figure = (
+                            data = [
+                                (x = [0],
+                                 y = [0],
+                                 z = [[0], [0]],
+                                type = "surface")
+                            ],
+                            layout = (
+                                        autosize=false,
+                                        width=700,
+                                        height=700
+                                    )
+                        )
+                    )
+                ], style = (width = "48%", display = "inline-block", float = "right")
+            )
         ]
     )
 end

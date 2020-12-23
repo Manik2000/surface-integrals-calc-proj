@@ -4,7 +4,7 @@ using LinearAlgebra
 using Decimals
 
 export divergence, transform, create_weights,
- split_region, coeff, surface_integral, round_float, parse_function
+ split_region, coeff, surface_integral, round_float, parse_function, Φ
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number

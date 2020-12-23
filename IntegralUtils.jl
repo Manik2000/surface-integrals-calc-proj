@@ -439,7 +439,7 @@ arguments(args::Symbol...)::String = '(' * String(args[1]) * reduce(*, ", " .* S
 """
     parse_function(name::Symbol, body::String, args::Symbol...)::Function
 
-Parse a body of a function and arguments' and function name's symbols to a actual function.
+Parse a body of a function and arguments' and function name's symbols to the actual function.
 
 # Examples
 ```

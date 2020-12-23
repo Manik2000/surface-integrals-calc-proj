@@ -393,7 +393,7 @@ julia> round_float(1.999, 1e-3)
 2
 ```
 """
-round_float(α::Float64, ϵ::Float64)::Union{Int, ::Float64} = abs(α - round(α)) < ϵ ? Int(round(α)) : 2 + round(α, digits = abs(Decimal(ϵ).q))
+round_float(α::Float64, ϵ::Float64)::Union{Int, Float64} = abs(α - round(α)) < ϵ ? Int(round(α)) : 2 + round(α, digits = abs(Decimal(ϵ).q))
 
 
 """
@@ -431,7 +431,7 @@ parse_function(body::String, args::Symbol...)::Function = eval(Meta.parse(argume
 
 
 """
-    Φ(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}; ϵ::Number = 1e-3, n::Int = 1)::Union{::Int, ::Float64}
+    Φ(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}; ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
 
 Determine a flux of a vector field `F` through a cuboid.
 
@@ -445,7 +445,7 @@ julia> Φ((x, y, z) -> [-y, x, 0], (-1, 1), (-1, 1), (-1, 1))
 ```
 """
 function Φ(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number};
-     ϵ::Number = 1e-3, n::Int = 1)::Union{::Int, ::Float64}
+     ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
     Φₙ = ∯(F, X, Y, Z; ξ = 2n, υ = 2n, ζ = 2n)
     n += 1
     Φₙ₊₁ = ∯(F, X, Y, Z; ξ = 2n, υ = 2n, ζ = 2n)
@@ -459,7 +459,7 @@ end
 
 
 """
-    Φ(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number}; ϵ::Number = 1e-3, n::Int = 1)::Union{::Int, Float64}
+    Φ(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number}; ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
 
 Determine a flux of a vector field `F` through a surface parametrized by `r`.
 
@@ -473,7 +473,7 @@ julia> Φ((x, y, z) -> [x, y, z], (u, v) -> [cos(u)cos(v), sin(u)cos(v), sin(v)]
 ```
 """
 function Φ(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number};
-     ϵ::Number = 1e-3, n::Int = 1)::Union{::Int, ::Float64}
+     ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
     Φₙ = ∯(F, r, U, V; μ = 2n, ν = 2n)
     n += 1
     Φₙ₊₁ = ∯(F, r, U, V; μ = 2n, ν = 2n)

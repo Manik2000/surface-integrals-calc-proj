@@ -122,8 +122,14 @@ callback!(app,
         Input("u_range1i", "value"),
         Input("u_range2i", "value"),
         Input("v_range1i", "value"),
-        Input("v_range2i", "value")
-        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max
+        Input("v_range2i", "value")#,
+        # Input("x_range1i", "value"),
+        # Input("x_range2i", "value"),
+        # Input("y_range1i", "value"),
+        # Input("y_range2i", "value"),
+        # Input("z_range1i", "value"),
+        # Input("z_range2i", "value")
+        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max #, x_min, x_max, y_min, y_max, z_min, z_max
             if dropdown_value == options_[1]
                     try
                         u_min = parse(Float64, u_min)
@@ -143,25 +149,29 @@ callback!(app,
                     else
                         N = 100  # interpolation parameter
 
-                        # xyz = split((strip(return_value, ['[', ']'])), ",")
+                        xyz = split((strip(return_value, ['[', ']'])), ",")
 
-                        # X = parse_function("[" * string(xyz[1]) * "]", :u, :v)
-                        # Y = parse_function("[" * string(xyz[2]) * "]", :u, :v)
-                        # Z = parse_function("[" * string(xyz[3]) * "]", :u, :v)
+                        X = parse_function(string(xyz[1]), :u, :v)
+                        Y = parse_function(string(xyz[2]), :u, :v)
+                        Z = parse_function(string(xyz[3]), :u, :v)
 
-                        X(u, v) = v + u
-                        Y(u, v) = v - u
-                        Z(u, v) = v^2 + u^2
-
-                        rs = range(v_min, v_max, length=N)
+                        vs = range(v_min, v_max, length=N)
                         us = range(u_min, u_max, length=N)
+
+                        value(g) = g.(us', vs)
+                        x1 = @eval ($value($X))
+                        y1 = @eval ($value($Y))
+                        z1 = @eval ($value($Z))
+
                         return Plot(surface(;
-                                x = X.(us', rs),
-                                y = Y.(us', rs),
-                                z = Z.(us', rs)))
+                                x = x1,
+                                y = y1,
+                                z = z1))
                     end
             end
         end
+
+
 
 
 run_server(app, "0.0.0.0")

@@ -87,8 +87,9 @@ callback!(app,
         Input("dropdown", "value")
         ) do return_value, dropdown_value
         if dropdown_value == options_[1]
-            f = Φ((x, y, z) -> [x, y, z], parse_function(return_value, :u, :v), (0, 1), (0, 1))
-            return f
+            p = parse_function(return_value, :u, :v)
+            value(g) = Φ((x, y, z) -> [x, y, z], g, (0, 1), (0, 1))
+            return @eval ($value($p))
         end
         # @eval foo() = $(Meta.parse("x->x"))
 end

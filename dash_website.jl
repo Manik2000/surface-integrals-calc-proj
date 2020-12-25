@@ -107,9 +107,13 @@ callback!(app,
         Input("dropdown", "value")
         ) do return_value, dropdown_value
         if dropdown_value == options_[1]
-            p = parse_function(return_value, :u, :v)
-            value(g) = Φ((x, y, z) -> [x, y, z], g, (0, 1), (0, 1))
-            return @eval ($value($p))
+            try
+                p = parse_function(return_value, :u, :v)
+                value(g) = Φ((x, y, z) -> [x, y, z], g, (0, 1), (0, 1))
+                return @eval ($value($p))
+            catch e
+                return "wrong input"
+            end
         end
 end
 
@@ -130,16 +134,17 @@ callback!(app,
         # Input("z_range2i", "value")
         ) do return_value, dropdown_value, u_min, u_max, v_min, v_max #, x_min, x_max, y_min, y_max, z_min, z_max
             if dropdown_value == options_[1]
+
                     try
                         u_min = parse(Float64, u_min)
                         u_max = parse(Float64, u_max)
                         v_min = parse(Float64, v_min)
                         v_max = parse(Float64, v_max)
-
                     catch e
                         u_min = v_min = 0
                         u_max = v_max = 4
                     end
+
                     if (u_min > u_max) | (v_min > v_max)
                         return Plot(surface(;
                                 x = [0],
@@ -148,15 +153,29 @@ callback!(app,
                     else
                         N = 100  # interpolation parameter
 
-                        xyz = split((strip(return_value, ['[', ']'])), ",")
+                        xyz = "_"
+                        X(u, v) = 0
+                        Y(u, v) = 0
+                        Z(u, v) = 0
 
-                        X = parse_function(string(xyz[1]), :u, :v)
-                        Y = parse_function(string(xyz[2]), :u, :v)
-                        Z = parse_function(string(xyz[3]), :u, :v)
+                        try
+                            xyz = split((strip(return_value, ['[', ']'])), ",")
+                            X = parse_function(string(xyz[1]), :u, :v)
+                            Y = parse_function(string(xyz[2]), :u, :v)
+                            Z = parse_function(string(xyz[3]), :u, :v)
+                            @eval ($X(-2, 3), $Y(-2, 3), $Z(-2, 3))
+                            @eval (isa($X(-2, 3), Array{Float64, 1}))
+                            @eval (isa($Y(-2, 3), Array{Float64, 1}))
+                            @eval (isa($Z(-2, 3), Array{Float64, 1}))
+                        catch e
+                            X = parse_function("0", :u, :v)
+                            Y = parse_function("0", :u, :v)
+                            Z = parse_function("0", :u, :v)
+                        end
 
+                        # println(X(2, 3), Y(2, 3), Z(2, 3))
                         vs = range(v_min, v_max, length=N)
                         us = range(u_min, u_max, length=N)
-
                         value(g) = g.(us', vs)
                         x1 = @eval ($value($X))
                         y1 = @eval ($value($Y))
@@ -169,8 +188,6 @@ callback!(app,
                     end
             end
         end
-
-
 
 
 run_server(app, "0.0.0.0")

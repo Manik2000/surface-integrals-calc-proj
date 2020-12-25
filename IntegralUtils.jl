@@ -1,10 +1,10 @@
-#module IntegralUtils
+module IntegralUtils
 
 using LinearAlgebra
 using Decimals
 
-#export divergence, transform, create_weights,
-# split_region, coeff, surface_integral, round_float, parse_function
+export divergence, transform, create_weights,
+split_region, coeff, surface_integral, round_float, parse_function
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
@@ -521,4 +521,4 @@ function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ
     return round_float(Φₙ₊₁, ϵ)
 end
 
-#end
+end

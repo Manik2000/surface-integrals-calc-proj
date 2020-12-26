@@ -2,7 +2,7 @@ using Dash
 using DashCoreComponents
 using DashHtmlComponents
 using PlotlyJS
-using .IntegralUtils
+#using .IntegralUtils
 
 
 app = dash(external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
@@ -128,7 +128,7 @@ callback!(app,
         # Input("y_range2i", "value"),
         # Input("z_range1i", "value"),
         # Input("z_range2i", "value")
-        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max #, x_min, x_max, y_min, y_max, z_min, z_max
+        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max#, x_min, x_max, y_min, y_max, z_min, z_max
             if dropdown_value == options_[1]
                     try
                         u_min = parse(Float64, u_min)

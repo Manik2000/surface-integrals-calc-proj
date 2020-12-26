@@ -1,10 +1,11 @@
-#module IntegralUtils
+module IntegralUtils
 
 using LinearAlgebra
 using Decimals
+using Statistics
 
-#export divergence, transform, create_weights,
-# split_region, coeff, surface_integral, round_float, parse_function
+export divergence, transform, create_weights,
+ split_region, coeff, surface_integral, round_float, parse_function
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
@@ -199,6 +200,14 @@ function create_weights(μ::Int, ν::Int)::Array{Float64, 2}
 end
 
 
+function create_weights(U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Float64, 2}
+    Uᵢ = LinRange(U..., μ  + 1)
+    adjust = ψ.(Uᵢ) - ϕ.(Uᵢ)
+    return vcat([1], 4 * ones(μ - 2) - repeat([0, 2], (μ - 2) ÷ 2), [4, 1]) .*
+            vcat([1], 4 * ones(ν - 2) - repeat([0, 2], (ν - 2) ÷ 2), [4, 1])' .* adjust'
+end
+
+
 """
     step(k::Int, N::Int, A::Tuple{Number, Number})::Float64
 
@@ -312,16 +321,10 @@ function split_region(U::Tuple{Number, Number}, V::Tuple{Number, Number},
 end
 
 
-validate(A::Array{Float64, 1}, ϕ::Function, ψ::Function)::Float64 = ϕ(A[1]) <= A[2] <= ψ(A[1]) ? 1.0 : NaN
-
-
 function split_region(U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
-    Uᵢ = LinRange(U..., μ + 1)
-    Vᵢ = LinRange(min(ϕ.(Uᵢ)...), max(ψ.(Uᵢ)...), ν + 1)
-    R = [[u, v] for u in Uᵢ, v in Vᵢ]
-    return validate.(R, ϕ, ψ) .* R
+    Uᵢ  = LinRange(U..., μ + 1)
+    return reshape([[u, v] for u in Uᵢ for v in LinRange(ϕ(u), ψ(u), ν + 1)], ν + 1, :)
 end
-
 
 """
     coeff(A::Tuple{Number, Number}, n::Int)::Float64
@@ -337,7 +340,7 @@ julia> coeff((0, 4), 4)
 0.3333333333333333
 ```
 """
-coeff(A::Tuple{Number, Number}, n::Int)::Float64 = (A[2] - A[1]) / (3 * n)
+coeff(A::Tuple{Number, Number}, n::Number)::Float64 = (A[2] - A[1]) / (3 * n)
 
 
 """
@@ -390,14 +393,11 @@ end
 
 function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
         μ::Int = 2, ν::Int = 2)::Float64
-
-    weights = create_weights(μ, ν)
     points = split_region(U, ϕ, ψ, μ, ν)
-    Uᵢ = LinRange(U..., μ)
-    return sum(replace!(transform.(F, r, points), NaN => 0) .* weights) * prod([coeff(interval, steps)
-            for (interval, steps) in zip((U, (min(ϕ.(Uᵢ)...), max(ψ.(Uᵢ)...))), (μ, ν))])
+    weights = create_weights(U, ϕ, ψ, μ, ν)
+    return sum(transform.(F, r, points) .* weights) * prod(coeff(interval, steps)
+            for (interval, steps) in zip((U, (0, 1)), (μ, ν)))
 end
-
 
 """
     round_float(α::Float64, ϵ::Float64)::Union{Float64, Int}
@@ -416,7 +416,7 @@ julia> round_float(1.999, 1e-3)
 2
 ```
 """
-round_float(α::Float64, ϵ::Float64)::Union{Int, Float64} = abs(α - round(α)) < ϵ ? Int(round(α)) : 2 + round(α, digits = abs(Decimal(ϵ).q))
+round_float(α::Float64, ϵ::Float64)::Union{Int, Float64} = abs(α - round(α)) < ϵ ? Int(round(α)) : round(α, digits = abs(Decimal(ϵ).q))
 
 
 """
@@ -511,14 +511,14 @@ end
 function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
      ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
     Φₙ = ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
+    n₀ = n
     n += 1
-    Φₙ₊₁ = ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
-    while abs(Φₙ₊₁ - Φₙ) > ϵ
+    Φₙ₊ₖ = ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
+    while abs(Φₙ₊ₖ - Φₙ) > ϵ
         n += 1
-        println(Φₙ)
-        Φₙ, Φₙ₊₁ = Φₙ₊₁, ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
+        Φₙ, Φₙ₊ₖ = Φₙ₊ₖ, ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
     end
-    return round_float(Φₙ₊₁, ϵ)
+    return round_float(Φₙ₊ₖ, ϵ)
 end
 
-#end
+end

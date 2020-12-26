@@ -4,7 +4,7 @@ using LinearAlgebra
 using Decimals
 
 export divergence, transform, create_weights,
-split_region, coeff, surface_integral, round_float, parse_function, Φ
+split_region, coeff, surface_integral, round_float, parse_function, parse_num, Φ
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
@@ -451,6 +451,23 @@ g (generic function with 1 method)
 ```
 """
 parse_function(body::String, args::Symbol...)::Function = eval(Meta.parse(arguments(args...) * "->" * body))
+
+
+"""
+    parse_num(value::String)::Float64
+
+Parse a number or an expression from string to float.
+
+# Examples
+```
+julia> parse_num("2pi")
+6.283185307179586
+
+julia> parse_num("2pi - 6/3 + 7.2")
+11.483185307179586
+```
+"""
+parse_num(value::String)::Float64 = eval(Meta.parse(value))
 
 
 """

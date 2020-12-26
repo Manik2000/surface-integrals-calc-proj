@@ -18,19 +18,45 @@ options_ = ["parametric representation", "z = f(x, y)"]
 app.layout = html_div() do
     html_div(style=Dict("textAlign" => "center"),
     children=[
-        html_h1("Surface integrals calculator", style=Dict("textAlign" => "center")),
-        dcc_markdown(markdown_text),
+        html_h1("Surface integrals calculator", style=Dict("textAlign" => "center", "margin" => "3%")),
+        dcc_markdown(markdown_text, style=Dict("margin" => "2%")),
             html_div(
                 children=[
                     dcc_dropdown(
                         id = "dropdown",
                         options = [(label = i, value = i) for i in options_],
-                        value = "parametric representation"
+                        value = "parametric representation",
+                        style = Dict("width" => "20vw", "display" => "inline-block")
                         ),
                     html_hr(),
                     html_label(id="representation", "Enter your input"),
-                    dcc_input(id="input", type="text", style=Dict("width" => "20em"), value="[u + v, v - u, v^2 + u^2]"),
-                    html_div(id="ranges"),
+                    dcc_input(id="input", type="text", style=Dict("width" => "20vw"), value="[sqrt(1/4 + u^2) * cos(v), sqrt(1/4 + u^2) * sin(v),  u]"),
+                    html_div(id="parametric_bounds", children=[
+                        html_label(id="u_range1", "Insert the lower bound for u"),
+                        dcc_input(id="u_range1i", type="text", value="-1"),
+                        html_label(id="u_range2", "Insert the upper bound for u"),
+                        dcc_input(id="u_range2i", type="text", value="1"),
+                        html_label(id="v_range1", "Insert the lower bound for v"),
+                        dcc_input(id="v_range1i", type="text", value="0"),
+                        html_label(id="v_range2", "Insert the upper bound for v"),
+                        dcc_input(id="v_range2i", type="text", value="2pi")
+                        ], style=Dict("display" => "block")
+                        ),
+                    html_div(id="f(x,y)_bounds", children=[
+                        html_label(id="x_range1", "Insert the lower bound for x"),
+                        dcc_input(id="x_range1i", type="text", value="-2"),
+                        html_label(id="x_range2", "Insert the upper bound for x"),
+                        dcc_input(id="x_range2i", type="text", value="2"),
+                        html_label(id="y_range1", "Insert the lower bound for y"),
+                        dcc_input(id="y_range1i", type="text", value="-2"),
+                        html_label(id="y_range2", "Insert the upper bound for y"),
+                        dcc_input(id="y_range2i", type="text", value="2"),
+                        html_label(id="z_range1", "Insert the lower bound for z"),
+                        dcc_input(id="z_range1i", type="text", value="0"),
+                        html_label(id="z_range2", "Insert the upper bound for z"),
+                        dcc_input(id="z_range2i", type="text", value="2")
+                    ], style=Dict("display" => "none")
+                    ),
                     html_div(id="output_")
                     ], style = (width = "48%", display = "inline-block", float = "left")),
             html_div(
@@ -46,12 +72,12 @@ app.layout = html_div() do
                             ],
                             layout = (
                                         autosize=false,
-                                        width=700,
-                                        height=700
+                                        width=600,
+                                        height=600
                                     )
-                        )
+                        ), style = Dict("width" => "48vw", "height" => "70vh")
                     )
-                ], style = (width = "48%", display = "inline-block", float = "right")
+                ], style = Dict("display" => "inline-block")
             )
         ]
     )
@@ -64,39 +90,17 @@ end
 #         ) do user_choice
 #         return options_[user_choice]
 # end
-
+#
 
 callback!(app,
-        Output("ranges", "children"),
+        Output("parametric_bounds", "style"),
+        Output("f(x,y)_bounds", "style"),
         Input("dropdown", "value")
         ) do user_choice
         if user_choice == "parametric representation"
-            return html_div(children=[
-                html_label(id="u_range1", "Insert the lower bound for u"),
-                dcc_input(id="u_range1i", type="text", value="0"),
-                html_label(id="u_range2", "Insert the upper bound for u"),
-                dcc_input(id="u_range2i", type="text", value="4"),
-                html_label(id="v_range1", "Insert the lower bound for v"),
-                dcc_input(id="v_range1i", type="text", value="0"),
-                html_label(id="v_range2", "Insert the upper bound for v"),
-                dcc_input(id="v_range2i", type="text", value="4")
-                ]
-                )
+            return Dict("display" => "block"), Dict("display" => "none")
         else
-            return html_div(children=[
-                html_label(id="x_range1", "Insert the lower bound for x"),
-                dcc_input(id="x_range1i", type="text", value="0"),
-                html_label(id="x_range2", "Insert the upper bound for x"),
-                dcc_input(id="x_range2i", type="text", value="4"),
-                html_label(id="y_range1", "Insert the lower bound for y"),
-                dcc_input(id="y_range1i", type="text", value="0"),
-                html_label(id="y_range2", "Insert the upper bound for y"),
-                dcc_input(id="y_range2i", type="text", value="4"),
-                html_label(id="z_range1", "Insert the lower bound for z"),
-                dcc_input(id="z_range1i", type="text", value="0"),
-                html_label(id="z_range2", "Insert the upper bound for z"),
-                dcc_input(id="z_range2i", type="text", value="4")
-            ])
+            return Dict("display" => "none"), Dict("display" => "block")
         end
 end
 
@@ -107,9 +111,13 @@ callback!(app,
         Input("dropdown", "value")
         ) do return_value, dropdown_value
         if dropdown_value == options_[1]
-            p = parse_function(return_value, :u, :v)
-            value(g) = Φ((x, y, z) -> [x, y, z], g, (0, 1), (0, 1))
-            return @eval ($value($p))
+            try
+                p = parse_function(return_value, :u, :v)
+                value(g) = Φ((x, y, z) -> [x, y, z], g, (0, 1), (0, 1))
+                return @eval ($value($p))
+            catch e
+                return "wrong input"
+            end
         end
 end
 
@@ -121,25 +129,28 @@ callback!(app,
         Input("u_range1i", "value"),
         Input("u_range2i", "value"),
         Input("v_range1i", "value"),
-        Input("v_range2i", "value")#,
-        # Input("x_range1i", "value"),
-        # Input("x_range2i", "value"),
-        # Input("y_range1i", "value"),
-        # Input("y_range2i", "value"),
-        # Input("z_range1i", "value"),
-        # Input("z_range2i", "value")
-        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max#, x_min, x_max, y_min, y_max, z_min, z_max
+        Input("v_range2i", "value"),
+        Input("x_range1i", "value"),
+        Input("x_range2i", "value"),
+        Input("y_range1i", "value"),
+        Input("y_range2i", "value"),
+        Input("z_range1i", "value"),
+        Input("z_range2i", "value")
+        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max, x_min, x_max, y_min, y_max, z_min, z_max
             if dropdown_value == options_[1]
-                    try
-                        u_min = parse(Float64, u_min)
-                        u_max = parse(Float64, u_max)
-                        v_min = parse(Float64, v_min)
-                        v_max = parse(Float64, v_max)
 
+                    try
+                        u_min = parse_num(u_min)
+                        u_max = parse_num(u_max)
+                        v_min = parse_num(v_min)
+                        v_max = parse_num(v_max)
                     catch e
-                        u_min = v_min = 0
-                        u_max = v_max = 4
+                        u_min = -1
+                        u_max = 1
+                        v_min = 0
+                        v_max = 2π
                     end
+
                     if (u_min > u_max) | (v_min > v_max)
                         return Plot(surface(;
                                 x = [0],
@@ -148,15 +159,28 @@ callback!(app,
                     else
                         N = 100  # interpolation parameter
 
-                        xyz = split((strip(return_value, ['[', ']'])), ",")
+                        xyz = "_"
+                        X(u, v) = 0
+                        Y(u, v) = 0
+                        Z(u, v) = 0
 
-                        X = parse_function(string(xyz[1]), :u, :v)
-                        Y = parse_function(string(xyz[2]), :u, :v)
-                        Z = parse_function(string(xyz[3]), :u, :v)
+                        try
+                            xyz = split((strip(return_value, ['[', ']'])), ",")
+                            X = parse_function(string(xyz[1]), :u, :v)
+                            Y = parse_function(string(xyz[2]), :u, :v)
+                            Z = parse_function(string(xyz[3]), :u, :v)
+                            @eval ($X(-2, 3), $Y(-2, 3), $Z(-2, 3))
+                            @eval (isa($X(-2, 3), Array{Float64, 1}))
+                            @eval (isa($Y(-2, 3), Array{Float64, 1}))
+                            @eval (isa($Z(-2, 3), Array{Float64, 1}))
+                        catch e
+                            X = parse_function("0", :u, :v)
+                            Y = parse_function("0", :u, :v)
+                            Z = parse_function("0", :u, :v)
+                        end
 
                         vs = range(v_min, v_max, length=N)
                         us = range(u_min, u_max, length=N)
-
                         value(g) = g.(us', vs)
                         x1 = @eval ($value($X))
                         y1 = @eval ($value($Y))
@@ -167,10 +191,51 @@ callback!(app,
                                 y = y1,
                                 z = z1))
                     end
+            else
+                try
+                    x_min = parse_num(x_min)
+                    x_max = parse_num(x_max)
+                    y_min = parse_num(y_min)
+                    y_max = parse_num(y_max)
+                    z_min = parse_num(z_min)
+                    z_max = parse_num(z_max)
+                catch e
+                    x_min = y_min = z_min = -2
+                    x_max = y_max = z_max = 2
+                end
+
+                if (x_min > x_max) | (y_min > y_max) | (z_min > z_max)
+                    return Plot(surface(;
+                            x = [0],
+                            y = [0],
+                            z = [[0], [0]]))
+                else
+                    N = 100  # interpolation parameter
+
+                    f(x, y) = 0
+
+                    try
+                        f = parse_function(return_value, :x, :y)
+                        @eval ($f(-2, 3))
+                        @eval (isa($f(-2, 3), Array{Float64, 1}))
+
+                    catch e
+                        f = parse_function("0", :x, :y)
+                    end
+
+                    xs = range(x_min, x_max, length=N)
+                    ys = range(y_min, y_max, length=N)
+                    value2(g) = g.(xs', ys)
+                    z1 = @eval ($value2($f))
+
+                    return Plot(surface(;
+                    x = xs,
+                    y = ys,
+                    z = z1))
+                end
+
             end
         end
-
-
 
 
 run_server(app, "0.0.0.0")

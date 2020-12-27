@@ -103,19 +103,42 @@ end
 
 callback!(app,
         Output("output_", "children"),
+        Input("dropdown", "value"),
         Input("input", "value"),
-        Input("dropdown", "value")
-        ) do return_value, dropdown_value
+        Input("vector_field", "value"),
+        Input("u_range1i", "value"),
+        Input("u_range2i", "value"),
+        Input("v_range1i", "value"),
+        Input("v_range2i", "value"),
+        Input("x_range1i", "value"),
+        Input("x_range2i", "value"),
+        Input("y_range1i", "value"),
+        Input("y_range2i", "value"),
+        Input("z_range1i", "value"),
+        Input("z_range2i", "value")
+        ) do dropdown_value, return_value, vector_field, u_min, u_max,
+            v_min, v_max, x_min, x_max, y_min, y_max, z_min, z_max
         if dropdown_value == options_[1]
             try
+                u_min, u_max, v_min, v_max = parse_num.([u_min, u_max, v_min, v_max])
                 p = parse_function(return_value, :u, :v)
-                value(g) = Φ((x, y, z) -> [x, y, z], g, (0, 1), (0, 1))
-                return html_h5("The value of the surface integral is $(@eval ($value($p))).")
+                q = parse_function(vector_field, :x, :y, :z)
+                value(f, g) = Φ(f, g, (u_min, u_max), (v_min, v_max))
+                return html_h5("The value of the surface integral is $(@eval ($value($q, $p))).")
             catch e
-                return "wrong input"
+                return html_h5("Wrong input. Try again.")
             end
         else
-            return html_h5("We don't handle it at this moment.")
+            # something must be changed here
+            try
+                x_min, x_max, y_min, y_max, z_min, z_max = parse_num.([x_min, x_max, y_min, y_max, z_min, z_max])
+                p = parse_function(return_value, :x, :y, :z)
+                q = parse_function(vector_field, :x, :y, :z)
+                value(f) = Φ(f, (x_min, x_max), (y_min, y_max), (z_min, z_max))
+                return html_h5("The value of the surface integral is $(@eval ($value($q))).")
+            catch e
+                return html_h5("Wrong input. Try again.")
+            end
         end
 end
 

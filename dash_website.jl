@@ -2,7 +2,7 @@ using Dash
 using DashCoreComponents
 using DashHtmlComponents
 using PlotlyJS
-#using .IntegralUtils
+using .IntegralUtils
 
 
 app = dash(external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
@@ -16,7 +16,7 @@ options_ = ["parametric representation", "z = f(x, y)"]
 
 
 app.layout = html_div() do
-    html_div(style=Dict("textAlign" => "center"),
+    html_div(style=Dict("textAlign" => "center", "paddingBottom" => "2em"),
     children=[
         html_h1("Surface integrals calculator", style=Dict("textAlign" => "center", "margin" => "3%")),
         dcc_markdown(markdown_text, style=Dict("margin" => "2%")),
@@ -29,8 +29,12 @@ app.layout = html_div() do
                         style = Dict("width" => "20vw", "display" => "inline-block")
                         ),
                     html_hr(),
-                    html_label(id="representation", "Enter your input"),
-                    dcc_input(id="input", type="text", style=Dict("width" => "20vw"), value="[sqrt(1/4 + u^2) * cos(v), sqrt(1/4 + u^2) * sin(v),  u]"),
+                    html_label(id="vector_field_l", "Enter your vector field formula"),
+                    dcc_input(id="vector_field", type="text", style=Dict("width" => "20vw", "textAlign" => "center"),
+                                value="[x, y, z]"),
+                    html_label(id="representation", "Enter your surface parametrization"),
+                    dcc_input(id="input", type="text", style=Dict("width" => "20vw", "textAlign" => "center"),
+                                value="[sqrt(1/4 + u^2) * cos(v), sqrt(1/4 + u^2) * sin(v),  u]"),
                     html_div(id="parametric_bounds", children=[
                         html_label(id="u_range1", "Insert the lower bound for u"),
                         dcc_input(id="u_range1i", type="text", value="-1"),
@@ -84,14 +88,6 @@ app.layout = html_div() do
 end
 
 
-# callback!(app,
-#         Output("input", "value"),
-#         Input("radio", "value")
-#         ) do user_choice
-#         return options_[user_choice]
-# end
-#
-
 callback!(app,
         Output("parametric_bounds", "style"),
         Output("f(x,y)_bounds", "style"),
@@ -114,10 +110,12 @@ callback!(app,
             try
                 p = parse_function(return_value, :u, :v)
                 value(g) = Φ((x, y, z) -> [x, y, z], g, (0, 1), (0, 1))
-                return @eval ($value($p))
+                return html_h5("The value of the surface integral is $(@eval ($value($p))).")
             catch e
                 return "wrong input"
             end
+        else
+            return html_h5("We don't handle it at this moment.")
         end
 end
 

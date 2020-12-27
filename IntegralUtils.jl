@@ -4,12 +4,9 @@ using LinearAlgebra
 using Decimals
 using Statistics
 
-export divergence, transform, create_weights,
-<<<<<<< HEAD
- split_region, coeff, surface_integral, round_float, parse_function
-=======
-split_region, coeff, surface_integral, round_float, parse_function, parse_num, Φ
->>>>>>> 9b3160784b6871b8a3e323117e8139560e8ae590
+export divergence, transform, create_weights, split_region,
+ coeff, surface_integral, round_float, parse_function, parse_num, Φ
+
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number

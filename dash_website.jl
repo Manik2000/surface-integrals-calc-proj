@@ -3,8 +3,9 @@ using DashCoreComponents
 using DashHtmlComponents
 using PlotlyJS
 include("IntegralUtils.jl")
+include("GraphingUtils.jl")
 using .IntegralUtils
-
+using .GraphingUtils
 
 app = dash(external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
 markdown_text = """
@@ -163,9 +164,14 @@ callback!(app,
         Input("y_range1i", "value"),
         Input("y_range2i", "value"),
         Input("z_range1i", "value"),
-        Input("z_range2i", "value")
-        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max, x_min, x_max, y_min, y_max, z_min, z_max
-            if dropdown_value == options_[1]
+        Input("z_range2i", "value"),
+        Input("vector_field", "value")
+        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max,
+            x_min, x_max, y_min, y_max, z_min, z_max, field
+
+            density = 10
+
+            if dropdown_value == options_[1] # _______________parametric
 
                     try
                         u_min = parse_num(u_min)
@@ -187,7 +193,7 @@ callback!(app,
                     else
                         N = 100  # interpolation parameter
 
-                        xyz = "_"
+                        xyz = F = Fx = Fy = Fz = "_"
                         X(u, v) = 0
                         Y(u, v) = 0
                         Z(u, v) = 0
@@ -197,6 +203,10 @@ callback!(app,
                             X = parse_function(string(xyz[1]), :u, :v)
                             Y = parse_function(string(xyz[2]), :u, :v)
                             Z = parse_function(string(xyz[3]), :u, :v)
+                            F = split((strip(field, ['[', ']'])), ",")
+                            Fx = parse_function(string(F[1]), :x)
+                            Fy = parse_function(string(F[2]), :y)
+                            Fz = parse_function(string(F[3]), :z)
                             @eval ($X(-2, 3), $Y(-2, 3), $Z(-2, 3))
                             @eval (isa($X(-2, 3), Array{Float64, 1}))
                             @eval (isa($Y(-2, 3), Array{Float64, 1}))
@@ -205,6 +215,9 @@ callback!(app,
                             X = parse_function("0", :u, :v)
                             Y = parse_function("0", :u, :v)
                             Z = parse_function("0", :u, :v)
+                            Fx = parse_function("0", :x)
+                            Fy = parse_function("0", :y)
+                            Fz = parse_function("0", :z)
                         end
 
                         vs = range(v_min, v_max, length=N)
@@ -214,12 +227,15 @@ callback!(app,
                         y1 = @eval ($value($Y))
                         z1 = @eval ($value($Z))
 
-                        return Plot(surface(;
-                                x = x1,
-                                y = y1,
-                                z = z1))
+                        return @eval($graph_all($x1, $y1, $z1, $Fx, $Fy, $Fz,
+                                minimum($x1), maximum($x1),
+                                minimum($y1), maximum($y1),
+                                minimum($z1), maximum($z1), $density))
                     end
-            else
+            else  # ______________________________________________f(x,y)
+
+                F = Fx = Fy = Fz = "_"
+
                 try
                     x_min = parse_num(x_min)
                     x_max = parse_num(x_max)
@@ -227,9 +243,16 @@ callback!(app,
                     y_max = parse_num(y_max)
                     z_min = parse_num(z_min)
                     z_max = parse_num(z_max)
+                    F = split((strip(field, ['[', ']'])), ",")
+                    Fx = parse_function(string(F[1]), :x)
+                    Fy = parse_function(string(F[2]), :y)
+                    Fz = parse_function(string(F[3]), :z)
                 catch e
                     x_min = y_min = z_min = -2
                     x_max = y_max = z_max = 2
+                    Fx = parse_function("0", :x)
+                    Fy = parse_function("0", :y)
+                    Fz = parse_function("0", :z)
                 end
 
                 if (x_min > x_max) | (y_min > y_max) | (z_min > z_max)
@@ -256,12 +279,11 @@ callback!(app,
                     value2(g) = g.(xs', ys)
                     z1 = @eval ($value2($f))
 
-                    return Plot(surface(;
-                    x = xs,
-                    y = ys,
-                    z = z1))
+                    return @eval($graph_all($xs, $ys, $z1, $Fx, $Fy, $Fz,
+                            $x_min, $x_max,
+                            $y_min, $y_max,
+                            minimum($z1), maximum($z1), $density))
                 end
-
             end
         end
 

@@ -6,7 +6,8 @@ include("IntegralUtils.jl")
 using .IntegralUtils
 
 
-app = dash(external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
+app = dash(external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"],
+            assets_folder="assets")
 markdown_text = """
                 We are **extremaly** happy that you've visited our website.
                 Below we've prepared a calulator of surface integrals.

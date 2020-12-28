@@ -2,14 +2,9 @@ module IntegralUtils
 
 using LinearAlgebra
 using Decimals
-using Statistics
 
-export divergence, transform, create_weights,
-<<<<<<< HEAD
- split_region, coeff, surface_integral, round_float, parse_function
-=======
-split_region, coeff, surface_integral, round_float, parse_function, parse_num, Φ
->>>>>>> 9b3160784b6871b8a3e323117e8139560e8ae590
+export parse_function, parse_num, Φ
+
 
 """
     ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
@@ -47,6 +42,7 @@ function ∂(f::Function, var::Symbol, P₀::Array{T1, 1}; Δ::Number = 1e-6)::U
     end
     return (f((P₀ + limits[var])...) - f(P₀...)) / Δ
 end
+
 
 """
     divergence(F::Function, P₀::Array{T, 1})::Number where T <: Number
@@ -114,221 +110,196 @@ end
 
 
 """
-    create_weights(ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
+    create_weights(X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
 
-Create a 3d matrix of weights according to composite simpson rule for triple integrals.
+Build a 3d matrix according to composite Simpson's rule for triple integrals.
 
 # Examples
 ```
-julia> create_weights(2, 2, 2)
+julia> create_weights((0, 1), (x, y) -> 0, (x, y) -> 1 - y - x, x -> 0, x -> 1 - x, 2, 2, 2)
 3×3×3 Array{Float64,3}:
 [:, :, 1] =
- 1.0   4.0  1.0
- 4.0  16.0  4.0
- 1.0   4.0  1.0
+ 1.0  1.0  0.0
+ 2.0  2.0  0.0
+ 0.0  0.0  0.0
 
 [:, :, 2] =
-  4.0  16.0   4.0
- 16.0  64.0  16.0
-  4.0  16.0   4.0
+ 4.0  4.0  0.0
+ 8.0  8.0  0.0
+ 0.0  0.0  0.0
 
 [:, :, 3] =
- 1.0   4.0  1.0
- 4.0  16.0  4.0
- 1.0   4.0  1.0
+ 1.0  1.0  0.0
+ 2.0  2.0  0.0
+ 0.0  0.0  0.0
 
- julia> create_weights(6, 4, 2)
- 7×5×3 Array{Float64,3}:
+ julia> create_weights((-1, 1), (x, y) -> sqrt(2-y^2-x^2), (x, y) -> 1, x -> 0, x -> sqrt(1-x^2), 4, 4, 2)
+ 5×5×3 Array{Float64,3}:
  [:, :, 1] =
-  1.0   4.0  2.0   4.0  1.0
-  4.0  16.0  8.0  16.0  4.0
-  2.0   8.0  4.0   8.0  2.0
-  4.0  16.0  8.0  16.0  4.0
-  2.0   8.0  4.0   8.0  2.0
-  4.0  16.0  8.0  16.0  4.0
-  1.0   4.0  2.0   4.0  1.0
+  0.0  -1.11847  -0.828427  -1.11847  0.0
+  0.0  -4.22673  -3.13553   -4.22673  0.0
+  0.0  -1.73205  -1.2915    -1.73205  0.0
+  0.0  -2.11231  -1.59166   -2.11231  0.0
+  0.0   0.0       0.0        0.0      0.0
 
  [:, :, 2] =
-   4.0  16.0   8.0  16.0   4.0
-  16.0  64.0  32.0  64.0  16.0
-   8.0  32.0  16.0  32.0   8.0
-  16.0  64.0  32.0  64.0  16.0
-   8.0  32.0  16.0  32.0   8.0
-  16.0  64.0  32.0  64.0  16.0
-   4.0  16.0   8.0  16.0   4.0
+  0.0   -4.4739    -3.31371   -4.4739   0.0
+  0.0  -16.9069   -12.5421   -16.9069   0.0
+  0.0   -6.9282    -5.16601   -6.9282   0.0
+  0.0   -8.44925   -6.36665   -8.44925  0.0
+  0.0    0.0        0.0        0.0      0.0
 
  [:, :, 3] =
-  1.0   4.0  2.0   4.0  1.0
-  4.0  16.0  8.0  16.0  4.0
-  2.0   8.0  4.0   8.0  2.0
-  4.0  16.0  8.0  16.0  4.0
-  2.0   8.0  4.0   8.0  2.0
-  4.0  16.0  8.0  16.0  4.0
-  1.0   4.0  2.0   4.0  1.0
+  0.0  -1.11847  -0.828427  -1.11847  0.0
+  0.0  -4.22673  -3.13553   -4.22673  0.0
+  0.0  -1.73205  -1.2915    -1.73205  0.0
+  0.0  -2.11231  -1.59166   -2.11231  0.0
+  0.0   0.0       0.0        0.0      0.0
 ```
 """
-function create_weights(ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
+function create_weights(X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function,
+    ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
+    Xᵢ = LinRange(X... , ξ + 1)
+    lengths = ψ.(Xᵢ) - ϕ.(Xᵢ)
+    areas = reshape([(η(x, y) - ρ(x, y)) * (ψ(x) - ϕ(x)) for x in Xᵢ for y in LinRange(ϕ(x), ψ(x), υ + 1)], (ξ + 1, υ + 1))
     return vcat([1], 4 * ones(ξ - 2) - repeat([0, 2], (ξ - 2) ÷ 2), [4, 1]) .*
-            vcat([1], 4 * ones(υ - 2) - repeat([0, 2], (υ - 2) ÷ 2), [4, 1])' .*
+            vcat([1], 4 * ones(υ - 2) - repeat([0, 2], (υ - 2) ÷ 2), [4, 1])' .* areas .*
             reshape(vcat([1], 4 * ones(ζ - 2) - repeat([0, 2], (ζ - 2) ÷ 2), [4, 1]), (1, 1, ζ + 1))
 end
 
 
 """
-    create_weights(μ::Int, ν::Int)::Array{Float64, 2}
+    create_weights(U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Float64, 2}
 
 Create a 2d matrix of weights according to composite simpson rule for double integrals.
 
 # Examples
 ```
-julia> create_weights(2, 2)
-3×3 Array{Float64,2}:
- 1.0   4.0  1.0
- 4.0  16.0  4.0
- 1.0   4.0  1.0
-
-julia> create_weights(6, 4)
+julia> create_weights((0, 1), x -> 0, x -> x, 6, 4)
 7×5 Array{Float64,2}:
- 1.0   4.0  2.0   4.0  1.0
- 4.0  16.0  8.0  16.0  4.0
- 2.0   8.0  4.0   8.0  2.0
- 4.0  16.0  8.0  16.0  4.0
- 2.0   8.0  4.0   8.0  2.0
- 4.0  16.0  8.0  16.0  4.0
- 1.0   4.0  2.0   4.0  1.0
+ 0.0        0.0      0.0       0.0      0.0
+ 0.666667   2.66667  1.33333   2.66667  0.666667
+ 0.666667   2.66667  1.33333   2.66667  0.666667
+ 2.0        8.0      4.0       8.0      2.0
+ 1.33333    5.33333  2.66667   5.33333  1.33333
+ 3.33333   13.3333   6.66667  13.3333   3.33333
+ 1.0        4.0      2.0       4.0      1.0
+
+julia> create_weights((0, π/4), x -> sin(x), x -> cos(x), 8, 4)
+9×5 Array{Float64,2}:
+ 1.0           4.0          2.0           4.0          1.0
+ 3.58867      14.3547       7.17734      14.3547       3.58867
+ 1.57139       6.28556      3.14278       6.28556      1.57139
+ 2.66662      10.6665       5.33325      10.6665       2.66662
+ 1.08239       4.32957      2.16478       4.32957      1.08239
+ 1.6421        6.56839      3.2842        6.56839      1.6421
+ 0.551799      2.2072       1.1036        2.2072       0.551799
+ 0.554469      2.21787      1.10894       2.21787      0.554469
+ 1.11022e-16   4.44089e-16  2.22045e-16   4.44089e-16  1.11022e-16
 ```
 """
-function create_weights(μ::Int, ν::Int)::Array{Float64, 2}
-    return vcat([1], 4 * ones(μ - 2) - repeat([0, 2], (μ - 2) ÷ 2), [4, 1]) .*
-            vcat([1], 4 * ones(ν - 2) - repeat([0, 2], (ν - 2) ÷ 2), [4, 1])'
-end
-
-
 function create_weights(U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Float64, 2}
-    Uᵢ = LinRange(U..., μ  + 1)
-    adjust = ψ.(Uᵢ) - ϕ.(Uᵢ)
+    Uᵢ = LinRange(U..., μ + 1)
+    lengths = ψ.(Uᵢ) - ϕ.(Uᵢ)
     return vcat([1], 4 * ones(μ - 2) - repeat([0, 2], (μ - 2) ÷ 2), [4, 1]) .*
-            vcat([1], 4 * ones(ν - 2) - repeat([0, 2], (ν - 2) ÷ 2), [4, 1])' .* adjust'
+            vcat([1], 4 * ones(ν - 2) - repeat([0, 2], (ν - 2) ÷ 2), [4, 1])' .* lengths
 end
 
 
 """
-    step(k::Int, N::Int, A::Tuple{Number, Number})::Float64
+    split_region(X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Array{Array{Float64, 1}, 3}
 
-Calculate a `k`th split point of interval `A`.
-
-# Examples
-```
-julia> step(2, 4, (0, 4))
-2.0
-
-julia> step(3, 6, (1, 4))
-2.5
-```
-"""
-step(k::Int, N::Int, A::Tuple{Number, Number})::Float64 = k * A[2] / N + A[1] * (1 - k / N)
-
-
-"""
-    split_region(X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}, ξ::Int, υ::Int, ζ::Int)::Array{Array{Float64, 1}, 3}
-
-Divide a cuboid into points in 3d space.
+Divide a 3d region into points on space.
 
 # Examples
 ```
-julia> split_region((0, 1), (0, 1), (0, 1), 2, 2, 2)
-3×3×3 Array{Array{Float64,1},3}:
+julia> split_region((0, 1), (x, y) -> 0, (x, y) -> 1, x -> 0, x -> 1, 4, 2, 2)
+5×3×3 Array{Array{Float64,1},3}:
 [:, :, 1] =
- [0.0, 0.0, 0.0]  [0.0, 0.5, 0.0]  [0.0, 1.0, 0.0]
- [0.5, 0.0, 0.0]  [0.5, 0.5, 0.0]  [0.5, 1.0, 0.0]
- [1.0, 0.0, 0.0]  [1.0, 0.5, 0.0]  [1.0, 1.0, 0.0]
+ [0.0, 0.0, 0.0]  [0.0, 0.5, 1.0]   [0.25, 0.0, 0.5]
+ [0.0, 0.0, 0.5]  [0.0, 1.0, 0.0]   [0.25, 0.0, 1.0]
+ [0.0, 0.0, 1.0]  [0.0, 1.0, 0.5]   [0.25, 0.5, 0.0]
+ [0.0, 0.5, 0.0]  [0.0, 1.0, 1.0]   [0.25, 0.5, 0.5]
+ [0.0, 0.5, 0.5]  [0.25, 0.0, 0.0]  [0.25, 0.5, 1.0]
 
 [:, :, 2] =
- [0.0, 0.0, 0.5]  [0.0, 0.5, 0.5]  [0.0, 1.0, 0.5]
- [0.5, 0.0, 0.5]  [0.5, 0.5, 0.5]  [0.5, 1.0, 0.5]
- [1.0, 0.0, 0.5]  [1.0, 0.5, 0.5]  [1.0, 1.0, 0.5]
+ [0.25, 1.0, 0.0]  [0.5, 0.0, 1.0]  [0.5, 1.0, 0.5]
+ [0.25, 1.0, 0.5]  [0.5, 0.5, 0.0]  [0.5, 1.0, 1.0]
+ [0.25, 1.0, 1.0]  [0.5, 0.5, 0.5]  [0.75, 0.0, 0.0]
+ [0.5, 0.0, 0.0]   [0.5, 0.5, 1.0]  [0.75, 0.0, 0.5]
+ [0.5, 0.0, 0.5]   [0.5, 1.0, 0.0]  [0.75, 0.0, 1.0]
 
 [:, :, 3] =
- [0.0, 0.0, 1.0]  [0.0, 0.5, 1.0]  [0.0, 1.0, 1.0]
- [0.5, 0.0, 1.0]  [0.5, 0.5, 1.0]  [0.5, 1.0, 1.0]
- [1.0, 0.0, 1.0]  [1.0, 0.5, 1.0]  [1.0, 1.0, 1.0]
+ [0.75, 0.5, 0.0]  [0.75, 1.0, 1.0]  [1.0, 0.5, 0.5]
+ [0.75, 0.5, 0.5]  [1.0, 0.0, 0.0]   [1.0, 0.5, 1.0]
+ [0.75, 0.5, 1.0]  [1.0, 0.0, 0.5]   [1.0, 1.0, 0.0]
+ [0.75, 1.0, 0.0]  [1.0, 0.0, 1.0]   [1.0, 1.0, 0.5]
+ [0.75, 1.0, 0.5]  [1.0, 0.5, 0.0]   [1.0, 1.0, 1.0]
 
- julia> split_region((0, 1), (0, 1), (0, 1), 8, 4, 2)
- 9×5×3 Array{Array{Float64,1},3}:
- [:, :, 1] =
-  [0.0, 0.0, 0.0]    [0.0, 0.25, 0.0]    [0.0, 0.5, 0.0]    [0.0, 0.75, 0.0]    [0.0, 1.0, 0.0]
-  [0.125, 0.0, 0.0]  [0.125, 0.25, 0.0]  [0.125, 0.5, 0.0]  [0.125, 0.75, 0.0]  [0.125, 1.0, 0.0]
-  [0.25, 0.0, 0.0]   [0.25, 0.25, 0.0]   [0.25, 0.5, 0.0]   [0.25, 0.75, 0.0]   [0.25, 1.0, 0.0]
-  [0.375, 0.0, 0.0]  [0.375, 0.25, 0.0]  [0.375, 0.5, 0.0]  [0.375, 0.75, 0.0]  [0.375, 1.0, 0.0]
-  [0.5, 0.0, 0.0]    [0.5, 0.25, 0.0]    [0.5, 0.5, 0.0]    [0.5, 0.75, 0.0]    [0.5, 1.0, 0.0]
-  [0.625, 0.0, 0.0]  [0.625, 0.25, 0.0]  [0.625, 0.5, 0.0]  [0.625, 0.75, 0.0]  [0.625, 1.0, 0.0]
-  [0.75, 0.0, 0.0]   [0.75, 0.25, 0.0]   [0.75, 0.5, 0.0]   [0.75, 0.75, 0.0]   [0.75, 1.0, 0.0]
-  [0.875, 0.0, 0.0]  [0.875, 0.25, 0.0]  [0.875, 0.5, 0.0]  [0.875, 0.75, 0.0]  [0.875, 1.0, 0.0]
-  [1.0, 0.0, 0.0]    [1.0, 0.25, 0.0]    [1.0, 0.5, 0.0]    [1.0, 0.75, 0.0]    [1.0, 1.0, 0.0]
+julia> split_region((-1, 1), (x, y) -> 0, (x, y) -> sqrt(2-x^2-y^2), x -> -sqrt(1-x^2), x -> sqrt(1-x^2), 4, 4, 2)
+5×5×3 Array{Array{Float64,1},3}:
+[:, :, 1] =
+ [-1.0, 0.0, 0.0]  [-1.0, 0.0, 1.0]  [-1.0, 0.0, 0.5]  [-0.5, -0.866025, 0.0]    [-0.5, -0.433013, 1.25]
+ [-1.0, 0.0, 0.5]  [-1.0, 0.0, 0.0]  [-1.0, 0.0, 1.0]  [-0.5, -0.866025, 0.5]    [-0.5, 0.0, 0.0]
+ [-1.0, 0.0, 1.0]  [-1.0, 0.0, 0.5]  [-1.0, 0.0, 0.0]  [-0.5, -0.866025, 1.0]    [-0.5, 0.0, 0.661438]
+ [-1.0, 0.0, 0.0]  [-1.0, 0.0, 1.0]  [-1.0, 0.0, 0.5]  [-0.5, -0.433013, 0.0]    [-0.5, 0.0, 1.32288]
+ [-1.0, 0.0, 0.5]  [-1.0, 0.0, 0.0]  [-1.0, 0.0, 1.0]  [-0.5, -0.433013, 0.625]  [-0.5, 0.433013, 0.0]
 
- [:, :, 2] =
-  [0.0, 0.0, 0.5]    [0.0, 0.25, 0.5]    [0.0, 0.5, 0.5]    [0.0, 0.75, 0.5]    [0.0, 1.0, 0.5]
-  [0.125, 0.0, 0.5]  [0.125, 0.25, 0.5]  [0.125, 0.5, 0.5]  [0.125, 0.75, 0.5]  [0.125, 1.0, 0.5]
-  [0.25, 0.0, 0.5]   [0.25, 0.25, 0.5]   [0.25, 0.5, 0.5]   [0.25, 0.75, 0.5]   [0.25, 1.0, 0.5]
-  [0.375, 0.0, 0.5]  [0.375, 0.25, 0.5]  [0.375, 0.5, 0.5]  [0.375, 0.75, 0.5]  [0.375, 1.0, 0.5]
-  [0.5, 0.0, 0.5]    [0.5, 0.25, 0.5]    [0.5, 0.5, 0.5]    [0.5, 0.75, 0.5]    [0.5, 1.0, 0.5]
-  [0.625, 0.0, 0.5]  [0.625, 0.25, 0.5]  [0.625, 0.5, 0.5]  [0.625, 0.75, 0.5]  [0.625, 1.0, 0.5]
-  [0.75, 0.0, 0.5]   [0.75, 0.25, 0.5]   [0.75, 0.5, 0.5]   [0.75, 0.75, 0.5]   [0.75, 1.0, 0.5]
-  [0.875, 0.0, 0.5]  [0.875, 0.25, 0.5]  [0.875, 0.5, 0.5]  [0.875, 0.75, 0.5]  [0.875, 1.0, 0.5]
-  [1.0, 0.0, 0.5]    [1.0, 0.25, 0.5]    [1.0, 0.5, 0.5]    [1.0, 0.75, 0.5]    [1.0, 1.0, 0.5]
+[:, :, 2] =
+ [-0.5, 0.433013, 0.625]  [0.0, -1.0, 0.0]       [0.0, -0.5, 1.32288]  [0.0, 0.5, 0.661438]  [0.5, -0.866025, 0.0]
+ [-0.5, 0.433013, 1.25]   [0.0, -1.0, 0.5]       [0.0, 0.0, 0.0]       [0.0, 0.5, 1.32288]   [0.5, -0.866025, 0.5]
+ [-0.5, 0.866025, 0.0]    [0.0, -1.0, 1.0]       [0.0, 0.0, 0.707107]  [0.0, 1.0, 0.0]       [0.5, -0.866025, 1.0]
+ [-0.5, 0.866025, 0.5]    [0.0, -0.5, 0.0]       [0.0, 0.0, 1.41421]   [0.0, 1.0, 0.5]       [0.5, -0.433013, 0.0]
+ [-0.5, 0.866025, 1.0]    [0.0, -0.5, 0.661438]  [0.0, 0.5, 0.0]       [0.0, 1.0, 1.0]       [0.5, -0.433013, 0.625]
 
- [:, :, 3] =
-  [0.0, 0.0, 1.0]    [0.0, 0.25, 1.0]    [0.0, 0.5, 1.0]    [0.0, 0.75, 1.0]    [0.0, 1.0, 1.0]
-  [0.125, 0.0, 1.0]  [0.125, 0.25, 1.0]  [0.125, 0.5, 1.0]  [0.125, 0.75, 1.0]  [0.125, 1.0, 1.0]
-  [0.25, 0.0, 1.0]   [0.25, 0.25, 1.0]   [0.25, 0.5, 1.0]   [0.25, 0.75, 1.0]   [0.25, 1.0, 1.0]
-  [0.375, 0.0, 1.0]  [0.375, 0.25, 1.0]  [0.375, 0.5, 1.0]  [0.375, 0.75, 1.0]  [0.375, 1.0, 1.0]
-  [0.5, 0.0, 1.0]    [0.5, 0.25, 1.0]    [0.5, 0.5, 1.0]    [0.5, 0.75, 1.0]    [0.5, 1.0, 1.0]
-  [0.625, 0.0, 1.0]  [0.625, 0.25, 1.0]  [0.625, 0.5, 1.0]  [0.625, 0.75, 1.0]  [0.625, 1.0, 1.0]
-  [0.75, 0.0, 1.0]   [0.75, 0.25, 1.0]   [0.75, 0.5, 1.0]   [0.75, 0.75, 1.0]   [0.75, 1.0, 1.0]
-  [0.875, 0.0, 1.0]  [0.875, 0.25, 1.0]  [0.875, 0.5, 1.0]  [0.875, 0.75, 1.0]  [0.875, 1.0, 1.0]
-  [1.0, 0.0, 1.0]    [1.0, 0.25, 1.0]    [1.0, 0.5, 1.0]    [1.0, 0.75, 1.0]    [1.0, 1.0, 1.0]
+[:, :, 3] =
+ [0.5, -0.433013, 1.25]  [0.5, 0.433013, 0.625]  [1.0, 0.0, 0.0]  [1.0, 0.0, 1.0]  [1.0, 0.0, 0.5]
+ [0.5, 0.0, 0.0]         [0.5, 0.433013, 1.25]   [1.0, 0.0, 0.5]  [1.0, 0.0, 0.0]  [1.0, 0.0, 1.0]
+ [0.5, 0.0, 0.661438]    [0.5, 0.866025, 0.0]    [1.0, 0.0, 1.0]  [1.0, 0.0, 0.5]  [1.0, 0.0, 0.0]
+ [0.5, 0.0, 1.32288]     [0.5, 0.866025, 0.5]    [1.0, 0.0, 0.0]  [1.0, 0.0, 1.0]  [1.0, 0.0, 0.5]
+ [0.5, 0.433013, 0.0]    [0.5, 0.866025, 1.0]    [1.0, 0.0, 0.5]  [1.0, 0.0, 0.0]  [1.0, 0.0, 1.0]
 ```
 """
-function split_region(X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number},
-        ξ::Int, υ::Int, ζ::Int)::Array{Array{Float64, 1}, 3}
-
-    return [[step(x, ξ, X), step(y, υ, Y), step(z, ζ, Z)] for x in 0:ξ, y in 0:υ, z in 0:ζ]
+function split_region(X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function,
+    ξ::Int, υ::Int, ζ::Int)::Array{Array{Float64, 1}, 3}
+    Xᵢ = LinRange(X..., ξ + 1)
+    return reshape([[x, y, z] for x in Xᵢ for y in LinRange(ϕ(x), ψ(x), υ + 1) for z in LinRange(ρ(x, y), η(x, y), ζ + 1)], ξ + 1, υ + 1, :)
 end
 
 
 """
-    split_region(U::Tuple{Number, Number}, V::Tuple{Number, Number}, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
+    split_region(Uᵢ::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
 
-Divide a rectangle into points in 2d space.
+Divide a 2d region into points on plane.
 
 # Examples
 ```
-julia> split_region((0, 1), (0, 1), 2, 2)
-3×3 Array{Array{Float64,1},2}:
- [0.0, 0.0]  [0.0, 0.5]  [0.0, 1.0]
- [0.5, 0.0]  [0.5, 0.5]  [0.5, 1.0]
- [1.0, 0.0]  [1.0, 0.5]  [1.0, 1.0]
+julia> split_region((0, 1), x -> 0, x -> x, 6, 4)
+7×5 Array{Array{Float64,1},2}:
+ [0.0, 0.0]             [0.166667, 0.0833333]  [0.333333, 0.333333]  [0.666667, 0.166667]  [0.833333, 0.625]
+ [0.0, 0.0]             [0.166667, 0.125]      [0.5, 0.0]            [0.666667, 0.333333]  [0.833333, 0.833333]
+ [0.0, 0.0]             [0.166667, 0.166667]   [0.5, 0.125]          [0.666667, 0.5]       [1.0, 0.0]
+ [0.0, 0.0]             [0.333333, 0.0]        [0.5, 0.25]           [0.666667, 0.666667]  [1.0, 0.25]
+ [0.0, 0.0]             [0.333333, 0.0833333]  [0.5, 0.375]          [0.833333, 0.0]       [1.0, 0.5]
+ [0.166667, 0.0]        [0.333333, 0.166667]   [0.5, 0.5]            [0.833333, 0.208333]  [1.0, 0.75]
+ [0.166667, 0.0416667]  [0.333333, 0.25]       [0.666667, 0.0]       [0.833333, 0.416667]  [1.0, 1.0]
 
-julia> split_region((0, 1), (0, 1), 4, 2)
-5×3 Array{Array{Float64,1},2}:
- [0.0, 0.0]   [0.0, 0.5]   [0.0, 1.0]
- [0.25, 0.0]  [0.25, 0.5]  [0.25, 1.0]
- [0.5, 0.0]   [0.5, 0.5]   [0.5, 1.0]
- [0.75, 0.0]  [0.75, 0.5]  [0.75, 1.0]
- [1.0, 0.0]   [1.0, 0.5]   [1.0, 1.0]
+julia> split_region((0, 2), x -> -sqrt(4-x^2), x -> sqrt(4-x^2), 6, 6)
+7×7 Array{Array{Float64,1},2}:
+ [0.0, -2.0]       [0.333333, -1.97203]   [0.666667, -1.88562]   [1.0, -1.73205]  [1.33333, -1.49071]   [1.66667, -1.10554]   [2.0, 0.0]
+ [0.0, -1.33333]   [0.333333, -1.31468]   [0.666667, -1.25708]   [1.0, -1.1547]   [1.33333, -0.993808]  [1.66667, -0.737028]  [2.0, 0.0]
+ [0.0, -0.666667]  [0.333333, -0.657342]  [0.666667, -0.628539]  [1.0, -0.57735]  [1.33333, -0.496904]  [1.66667, -0.368514]  [2.0, 0.0]
+ [0.0, 0.0]        [0.333333, 0.0]        [0.666667, 0.0]        [1.0, 0.0]       [1.33333, 0.0]        [1.66667, 0.0]        [2.0, 0.0]
+ [0.0, 0.666667]   [0.333333, 0.657342]   [0.666667, 0.628539]   [1.0, 0.57735]   [1.33333, 0.496904]   [1.66667, 0.368514]   [2.0, 0.0]
+ [0.0, 1.33333]    [0.333333, 1.31468]    [0.666667, 1.25708]    [1.0, 1.1547]    [1.33333, 0.993808]   [1.66667, 0.737028]   [2.0, 0.0]
+ [0.0, 2.0]        [0.333333, 1.97203]    [0.666667, 1.88562]    [1.0, 1.73205]   [1.33333, 1.49071]    [1.66667, 1.10554]    [2.0, 0.0]
 ```
 """
-function split_region(U::Tuple{Number, Number}, V::Tuple{Number, Number},
-        μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
-
-    return [[step(u, μ, U), step(v, ν, V)] for u in 0:μ, v in 0:ν]
-end
-
-
 function split_region(U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
-    Uᵢ  = LinRange(U..., μ + 1)
-    return reshape([[u, v] for u in Uᵢ for v in LinRange(ϕ(u), ψ(u), ν + 1)], ν + 1, :)
+    Uᵢ = LinRange(U..., μ + 1)
+    return reshape([[u, v] for u in Uᵢ for v in LinRange(ϕ(u), ψ(u), ν + 1)], μ + 1, :)
 end
+
 
 """
     coeff(A::Tuple{Number, Number}, n::Int)::Float64
@@ -348,60 +319,51 @@ coeff(A::Tuple{Number, Number}, n::Number)::Float64 = (A[2] - A[1]) / (3 * n)
 
 
 """
-    ∯(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}; ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
+    ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function; ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
 
-Determine flux of vector field `F` through a cuboid using Gauss-Ostrogradski theorem and Simpson's rule for ``ξ⋅υ⋅ζ`` nodes.
+Determine flux of vector field `F` through a 3d region using Gauss-Ostrogradski theorem and Simpson's rule for ``ξ⋅υ⋅ζ`` nodes.
 
 # Examples
 ```
-julia> surface_integral((x, y, z) -> [x, y, z], (0, 1), (0, 1), (0, 1))
+julia> ∯((x, y, z) -> [x, y, z], (0, 1), (x, y) -> 0, (x, y) -> 1, x -> 0, x -> 1)
 3.0000000000163776
 
-julia> surface_integral((x, y, z) -> [-y, x, 0], (-1, 1), (-1, 1), (-1, 1))
-0.0
+julia> ∯((x, y, z) -> [x^2, y^2, z^2], (-1, 1), (x, y) -> 0, (x, y) -> x^2+y^2, x -> -1, x -> 1; ξ = 6, υ = 4, ζ = 2)
+2.5488967009810803
 ```
 """
-function ∯(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number};
+function ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function;
     ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
 
-    weights = create_weights(ξ, υ, ζ)
-    points = split_region(X, Y, Z, ξ, υ, ζ)
+    weights = create_weights(X, ρ, η, ϕ, ψ, ξ, υ, ζ)
+    points = split_region(X, ρ, η, ϕ, ψ, ξ, υ, ζ)
     return sum(divergence.(F, points) .* weights) * prod([coeff(interval, steps)
-            for (interval, steps) in zip((X, Y, Z), (ξ, υ, ζ))])
+            for (interval, steps) in zip((X, (0, 1), (0, 1)), (ξ, υ, ζ))])
 end
 
 
 """
-    ∯(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number}; μ::Int = 2, ν::Int = 2)::Float64
+    ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function; μ::Int = 2, ν::Int = 2)::Float64
 
-Determine flux of vector field `F` through a surface parametrized by `r` using Simpson's rule for ``μ⋅ν`` nodes.
+Determine flux of vector field `F` through a 2d region using Jacobian and Simpson's rule for ``μ⋅ν`` nodes.
 
 # Examples
 ```
-julia> surface_integral((x, y, z) -> [-y, x, 0], (u, v) -> [(cos(u) + 2)cos(v), (cos(u) + 2)sin(v), sin(u)],  (0, 2π), (0, π/2))
--1.1513612148289776e-5
+julia> ∯((x, y, z) -> [x, y, z], (u, v) -> [cos(u), sin(u), v], (0, 2π), u -> 0, u -> u)
+19.739208804825942
 
-julia> surface_integral((x, y, z) -> [x, y, z], (u, v) -> [cos(u)cos(v), sin(u)cos(v), sin(v)], (0, 2π), (-π/2, π/2), 2, 8)
-12.56806186014683
+julia> ∯((x, y, z) -> [x^2, y^2, z^2], (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0, u -> 4-u; μ = 8, ν = 10)
+64.00000000410644
 ```
 """
-function ∯(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number};
-        μ::Int = 2, ν::Int = 2)::Float64
-
-    weights = create_weights(μ, ν)
-    points = split_region(U, V, μ, ν)
-    return sum(transform.(F, r, points) .* weights) * prod([coeff(interval, steps)
-            for (interval, steps) in zip((U, V), (μ, ν))])
-end
-
-
 function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
         μ::Int = 2, ν::Int = 2)::Float64
     points = split_region(U, ϕ, ψ, μ, ν)
     weights = create_weights(U, ϕ, ψ, μ, ν)
-    return sum(transform.(F, r, points) .* weights) * prod(coeff(interval, steps)
+    return sum(transform.(F, r, points) .* weights') * prod(coeff(interval, steps)
             for (interval, steps) in zip((U, (0, 1)), (μ, ν)))
 end
+
 
 """
     round_float(α::Float64, ϵ::Float64)::Union{Float64, Int}
@@ -475,60 +437,46 @@ parse_num(value::String)::Float64 = eval(Meta.parse(value))
 
 
 """
-    Φ(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number}; ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
+    Φ(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function; ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
 
-Determine a flux of a vector field `F` through a cuboid.
+Determine a flux of a vector field `F` through a surface.
 
 # Examples
 ```
-julia> Φ((x, y, z) -> [x, y, z], (0, 1), (0, 1), (0, 1))
-2.9999999999958114
+julia> Φ((x, y, z) -> [x, y, z], (0, 1), (x, y) -> 0, (x, y) -> 1, x -> 0, x -> 1)
+3
 
-julia> Φ((x, y, z) -> [-y, x, 0], (-1, 1), (-1, 1), (-1, 1))
-0.0
+julia> Φ((x, y, z) -> [-y, x, 0], (-1, 1), (x, y) -> 0, (x, y) -> sqrt(2-y^2-x^2), x -> -sqrt(1-x^2), x -> sqrt(1-x^2))
+0
 ```
 """
-function Φ(F::Function, X::Tuple{Number, Number}, Y::Tuple{Number, Number}, Z::Tuple{Number, Number};
+function Φ(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function;
      ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
-    Φₙ = ∯(F, X, Y, Z; ξ = 2n, υ = 2n, ζ = 2n)
+    Φₙ = ∯(F, X, ρ, η, ϕ, ψ; ξ = 2n, υ = 2n, ζ = 2n)
     n += 1
-    Φₙ₊₁ = ∯(F, X, Y, Z; ξ = 2n, υ = 2n, ζ = 2n)
+    Φₙ₊₁ = ∯(F, X, ρ, η, ϕ, ψ; ξ = 2n, υ = 2n, ζ = 2n)
     while abs(Φₙ₊₁ - Φₙ) > ϵ
         n += 1
-        Φₙ, Φₙ₊₁ = Φₙ₊₁, ∯(F, X, Y, Z; ξ = 2n, υ = 2n, ζ = 2n)
+        Φₙ, Φₙ₊₁ = Φₙ₊₁, ∯(F, X, ρ, η, ϕ, ψ; ξ = 2n, υ = 2n, ζ = 2n)
     end
     return round_float(Φₙ₊₁, ϵ)
 end
 
 
-
 """
-    Φ(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number}; ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
+    Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function; ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
 
 Determine a flux of a vector field `F` through a surface parametrized by `r`.
 
 # Examples
 ```
-julia> Φ((x, y, z) -> [-y, x, 0], (u, v) -> [(cos(u) + 2)cos(v), (cos(u) + 2)sin(v), sin(u)],  (0, 2π), (0, π/2))
--9.869203248214035e-6
+julia> Φ((x, y, z) -> (x^2, y^2, z^2), (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0, u -> 4-u)
+64
 
-julia> Φ((x, y, z) -> [x, y, z], (u, v) -> [cos(u)cos(v), sin(u)cos(v), sin(v)], (0, 2π), (-π/2, π/2))
-12.566373879290955
+julia> Φ((x, y, z) -> [x-y, y-z, z-x], (u, v) -> [(cos(u)+2)cos(v), (cos(u)+2)sin(v), sin(u)], (0, 2π), u -> 0, u -> 2π; ϵ = 1e-6)
+-118.435273
 ```
 """
-function Φ(F::Function, r::Function, U::Tuple{Number, Number}, V::Tuple{Number, Number};
-     ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
-    Φₙ = ∯(F, r, U, V; μ = 2n, ν = 2n)
-    n += 1
-    Φₙ₊₁ = ∯(F, r, U, V; μ = 2n, ν = 2n)
-    while abs(Φₙ₊₁ - Φₙ) > ϵ
-        n += 1
-        Φₙ, Φₙ₊₁ = Φₙ₊₁, ∯(F, r, U, V; μ = 2n, ν = 2n)
-    end
-    return round_float(Φₙ₊₁, ϵ)
-end
-
-
 function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
      ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
     Φₙ = ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)

@@ -2,6 +2,7 @@ using Dash
 using DashCoreComponents
 using DashHtmlComponents
 using PlotlyJS
+include("IntegralUtils.jl")
 using .IntegralUtils
 
 
@@ -120,22 +121,28 @@ callback!(app,
             v_min, v_max, x_min, x_max, y_min, y_max, z_min, z_max
         if dropdown_value == options_[1]
             try
-                u_min, u_max, v_min, v_max = parse_num.([u_min, u_max, v_min, v_max])
+                u_min, u_max = parse_num.([u_min, u_max])
                 p = parse_function(return_value, :u, :v)
                 q = parse_function(vector_field, :x, :y, :z)
-                value(f, g) = Φ(f, g, (u_min, u_max), (v_min, v_max))
-                return html_h5("The value of the surface integral is $(@eval ($value($q, $p))).")
+                ϕ = parse_function(v_min, :u)
+                ψ = parse_function(v_max, :u)
+                value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b)
+                return html_h5("The value of the surface integral is $(@eval ($value($q, $p, $ϕ, $ψ))).")
             catch e
                 return html_h5("Wrong input. Try again.")
             end
         else
             # something must be changed here
             try
-                x_min, x_max, y_min, y_max, z_min, z_max = parse_num.([x_min, x_max, y_min, y_max, z_min, z_max])
+                x_min, x_max = parse_num.([x_min, x_max])
                 p = parse_function(return_value, :x, :y, :z)
                 q = parse_function(vector_field, :x, :y, :z)
-                value(f) = Φ(f, (x_min, x_max), (y_min, y_max), (z_min, z_max))
-                return html_h5("The value of the surface integral is $(@eval ($value($q))).")
+                ϕ = parse_function(y_min, :x)
+                ψ = parse_function(y_max, :x)
+                ρ = parse_function(z_min, :x, :y)
+                η = parse_function(z_max, :x, :y)
+                value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d)
+                return html_h5("The value of the surface integral is $(@eval ($value($q, $ρ, $η, $ϕ, $ψ))).")
             catch e
                 return html_h5("Wrong input. Try again.")
             end

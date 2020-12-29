@@ -188,8 +188,8 @@ callback!(app,
                     try
                         u_min = parse_num(u_min)
                         u_max = parse_num(u_max)
-                        v_min = parse_num(v_min)
-                        v_max = parse_num(v_max)
+                        v_min = parse_function(v_min, :u)
+                        v_max = parse_function(v_max, :u)
                     catch e
                         u_min = -1
                         u_max = 1
@@ -197,13 +197,13 @@ callback!(app,
                         v_max = 2π
                     end
 
-                    if (u_min > u_max) | (v_min > v_max)
+                    if false
                         return Plot(surface(;
                                 x = [0],
                                 y = [0],
                                 z = [[0], [0]]))
                     else
-                        N = 100  # interpolation parameter
+                        N = 50  # interpolation parameter
 
                         xyz = F = Fx = Fy = Fz = "_"
                         X(u, v) = 0
@@ -235,17 +235,23 @@ callback!(app,
                             Fz = parse_function("0", :z)
                         end
 
-                        vs = range(v_min, v_max, length=N)
-                        us = range(u_min, u_max, length=N)
-                        value(g) = g.(us', vs)
+
+                        us = LinRange(u_min, u_max, N)
+                        value_(g, u::LinRange) = g.(u)
+                        value_(g, u::Number) = g(u)
+                        vs = @eval (LinRange(minimum($value_($v_min, $us)), maximum($value_($v_max, $us)), $N))
+
+                        check(u, v, f) = @eval($value_($v_min, $u) <= $v && $value_($v_max, $u) >= $v ? $f($u, $v) : NaN)
+
+                        value(g) = check.(us', vs, g)
                         x1 = @eval ($value($X))
                         y1 = @eval ($value($Y))
                         z1 = @eval ($value($Z))
 
                         return @eval($graph_all($x1, $y1, $z1, $Fx, $Fy, $Fz,
-                                minimum($x1), maximum($x1),
-                                minimum($y1), maximum($y1),
-                                minimum($z1), maximum($z1), $density))
+                                -1, 1,
+                                -1, 1,
+                                -1, 1, $density))
                     end
             else  # ______________________________________________f(x,y)
 

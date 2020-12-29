@@ -623,7 +623,6 @@ function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ
     Φₙ₊₁ = surface_integral(n)
     while abs(Φₙ₊₁ - Φₙ) > ϵ
         n += 1
-        println(Φₙ)
         Φₙ, Φₙ₊₁ = Φₙ₊₁, surface_integral(n)
     end
     return round_float(Φₙ₊₁, ϵ)

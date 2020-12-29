@@ -23,4 +23,6 @@ function graph_all(x, y, z, Fx::Function, Fy::Function, Fz::Function,
     return Plot([trace₁, trace₂], layout)
 end
 
+# check(u, v, f) = v_min(u) <= v && v_max(u) >= v ? f(u, v) : NaN
+
 end

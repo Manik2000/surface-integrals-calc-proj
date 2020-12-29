@@ -364,42 +364,6 @@ end
 
 
 """
-    draw_points(Xᵢ::LinRange{Float64}, ϕ::Function, ψ::Function, N::Int)::Array{Array{Float64, 1}, 1}
-
-Choose randomly 2d points from a rectangle that bounds a region.
-
-# Examples
-```
-julia> draw_points(LinRange(0, 1, 11), x -> 0, x -> 1, 11)
-11-element Array{Array{Float64,1},1}:
- [0.2, 0.4]
- [0.3, 0.7]
- [0.5, 1.0]
- [0.2, 0.8]
- [0.1, 0.5]
- [0.1, 0.3]
- [1.0, 0.3]
- [0.9, 0.0]
- [0.6, 0.5]
- [0.7, 0.8]
- [0.1, 1.0]
-
-julia> draw_points(LinRange(1, 2, 5), x -> 0, x -> log(x), 5)
-5-element Array{Array{Float64,1},1}:
- [2.0, 0.0]
- [1.25, 0.34657359027997264]
- [1.5, 0.17328679513998632]
- [1.75, 0.17328679513998632]
- [1.5, 0.0]
-```
-"""
-function draw_points(Xᵢ::LinRange{Float64}, ϕ::Function, ψ::Function, N::Int)::Array{Array{Float64, 1}, 1}
-    Yᵢ = LinRange(min(ϕ.(Xᵢ)...), max(ψ.(Xᵢ)...), N)
-    return [[rand(Xᵢ), rand(Yᵢ)] for i in 1:N]
-end
-
-
-"""
     draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, ρ::Function, η::Function, N::Int)::Array{Array{Float64, 1}, 1}
 
 Choose randomly 3d points from a cuboid that bounds a region.
@@ -435,10 +399,29 @@ julia> draw_points(LinRange(0, 1, 5), LinRange(0, 1, 5), (x, y) -> 0, (x, y) -> 
  [0.5, 1.0, 0.848528137423857]
 ```
 """
-function draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, ρ::Function, η::Function, N::Int)::Array{Array{Float64, 1}, 1}
-    unzip(f, P) = f(P...)
-    Zᵢ = LinRange(min(unzip.(ρ, zip(Xᵢ, Yᵢ))...), max(unzip.(η, zip(Xᵢ, Yᵢ))...), N)
+function draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, Zᵢ::LinRange{Float64}, N::Int)::Array{Array{Float64, 1}, 1}
     return [[rand(Xᵢ), rand(Yᵢ), rand(Zᵢ)] for i in 1:N]
+end
+
+
+function draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, N::Int)::Array{Array{Float64, 1}, 1}
+    return [[rand(Xᵢ), rand(Yᵢ)] for i in 1:N]
+end
+
+
+function surface_part(F::Function, r::Function, S::Array{LinRange{Float64}, 1}, N::Int, ϕ::Function, ψ::Function)::Float64
+    Uᵢ, Vᵢ = S[1]
+    points = draw_points(Uᵢ, Vᵢ, N)
+    validate(P::Array{Float64, 1}) = ϕ(P[1]) <= P[2] <= ψ(P[1]) ? transform(F, r, P) : 0.0
+    return sum(validate.(points)) * (max(Uᵢ...) - min(Uᵢ...)) * (max(Vᵢ...) - min(Vᵢ...)) / N
+end
+
+
+function surface_part(F::Function, S::Array{LinRange{Float64}, 1}, N::Int, ρ::Function, η::Function, ϕ::Function, ψ::Function)::Float64
+    Xᵢ, Yᵢ, Zᵢ = S
+    points = draw_points(Xᵢ, Yᵢ, Zᵢ, N)
+    validate(P::Array{Float64, 1}) = ϕ(P[1]) <= P[2] <= ψ(P[1]) && ρ(P[1:2]...) <= P[3] <= η(P[1:2]...) ? divergence(F, P) : 0.0
+    return sum(validate.(points)) * (max(Xᵢ...) - min(Xᵢ...)) * (max(Yᵢ...) - min(Yᵢ...)) * (max(Zᵢ...) - min(Zᵢ...)) / N
 end
 
 
@@ -456,11 +439,13 @@ julia> ∯((x, y, z) -> [x^2, y^2, z^2], (-1, 1), (x, y) -> 0, (x, y) -> x^2+y^2
 2.4837039282914986
 ```
 """
-function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, N::Int)::Float64
-    Uᵢ = LinRange(U..., N)
-    points = draw_points(Uᵢ, ϕ, ψ, N)
-    validate(P::Array{Float64, 1}) = ϕ(P[1]) <= P[2] <= ψ(P[1]) ? transform(F, r, P) : 0.0
-    return sum(validate.(points)) * (U[2] - U[1]) * (max(ψ.(Uᵢ)...) - min(ϕ.(Uᵢ)...)) / N
+function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, N::Int, parts::Float64)::Float64
+    x_part = Int(parts / 2)
+    y_part = Int(parts / x_part)
+    Uᵢ = LinRange(U..., x_part*N)
+    Vᵢ = LinRange(min(ϕ.(Uᵢ)...), max(ψ.(Uᵢ)...), y_part*N)
+    S = [[Uᵢ[N*i+1:(i+1)N], Vᵢ[N*j+1:(j+1)N]] for i in 0:(x_part-1), j in 0:(y_part-1)]
+    return sum(surface_part.(F, r, S, N, ϕ, ψ))
 end
 
 
@@ -478,13 +463,15 @@ julia> ∯((x, y, z) -> [x^2, y^2, z^2], (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0
 64.06677011718612
 ```
 """
-function ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, N::Int)::Float64
-    Xᵢ = LinRange(X..., N)
-    Yᵢ = LinRange(min(ϕ.(Xᵢ)...), max(ψ.(Xᵢ)...), N)
+function ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, N::Int, parts::Float64)::Float64
+    x_part = y_part = Int(parts / 4)
+    z_part = Int(parts / 2x_part)
+    Xᵢ = LinRange(X..., x_part*N)
+    Yᵢ = LinRange(min(ϕ.(Xᵢ)...), max(ψ.(Xᵢ)...), y_part*N)
     unzip(f, P) = f(P...)
-    points = draw_points(Xᵢ, Yᵢ, ρ, η, N)
-    validate(P::Array{Float64, 1}) = ϕ(P[1]) <= P[2] <= ψ(P[1]) && ρ(P[1:2]...) <= P[3] <= η(P[1:2]...) ? divergence(F, P) : 0.0
-    return sum(validate.(points)) * (X[2] - X[1]) * (max(Yᵢ...) - min(Yᵢ...)) * (max(unzip.(η, zip(Xᵢ, Yᵢ))...) - min(unzip.(ρ, zip(Xᵢ, Yᵢ))...)) / N
+    Zᵢ = LinRange(min(unzip.(ρ, zip(Xᵢ, Yᵢ))...), max(unzip.(η, zip(Xᵢ, Yᵢ))...), z_part*N)
+    S = [[Xᵢ[N*i+1:(i+1)N], Yᵢ[N*j+1:(j+1)N], Zᵢ[N*k+1:(k+1)N]] for i in 0:(x_part-1), j in 0:(y_part-1), k in 0:(z_part-1)]
+    return sum(surface_part.(F, S, N, ρ, η, ϕ, ψ))
 end
 
 
@@ -591,9 +578,9 @@ julia> Φ((x, y, z) -> [-y, x, 0], (-1, 1), (x, y) -> 0, (x, y) -> sqrt(2-y^2-x^
 ```
 """
 function Φ(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function;
-     ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
+     ϵ::Number = 1e-2, technique::String = "Simpson")::Union{Int, Float64}
     if technique in ("Simpson", "Monte Carlo")
-        surface_integral(n) = technique == "Simpson" ? ∯(F, X, ρ, η, ϕ, ψ, 2n, 2n, 2n) : ∯(F, X, ρ, η, ϕ, ψ, 100n)
+        surface_integral(n) = technique == "Simpson" ? ∯(F, X, ρ, η, ϕ, ψ, 2n, 2n, 2n) : ∯(F, X, ρ, η, ϕ, ψ, 100n, 4.0n)
     else
         throw(ArgumentError("Invalid technique name."))
     end
@@ -624,9 +611,9 @@ julia> Φ((x, y, z) -> [x-y, y-z, z-x], (u, v) -> [(cos(u)+2)cos(v), (cos(u)+2)s
 ```
 """
 function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
-     ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
+     ϵ::Number = 1e-2, technique::String = "Simpson")::Union{Int, Float64}
     if technique in ("Simpson", "Monte Carlo")
-        surface_integral(n::Int) = technique == "Simpson" ? ∯(F, r, U, ϕ, ψ, 2n, 2n) : ∯(F, r, U, ϕ, ψ, 100n)
+        surface_integral(n::Int) = technique == "Simpson" ? ∯(F, r, U, ϕ, ψ, 2n, 2n) : ∯(F, r, U, ϕ, ψ, 100n, 4.0n)
     else
         throw(ArgumentError("Invalid technique name."))
     end
@@ -636,6 +623,7 @@ function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ
     Φₙ₊₁ = surface_integral(n)
     while abs(Φₙ₊₁ - Φₙ) > ϵ
         n += 1
+        println(Φₙ)
         Φₙ, Φₙ₊₁ = Φₙ₊₁, surface_integral(n)
     end
     return round_float(Φₙ₊₁, ϵ)

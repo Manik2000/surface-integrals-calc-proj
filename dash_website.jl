@@ -83,9 +83,21 @@ app.layout = html_div() do
                                         height=600
                                     )
                         ), style = Dict("width" => "48vw", "height" => "70vh")
-                    )
+                    ),
+                    html_div(
+                        children=[
+                            dcc_slider(
+                                id = "field_density",
+                                min = 0,
+                                max = 20,
+                                marks = Dict([Symbol(v) => Symbol(v) for v in 0:2:20]),
+                                value = 10,
+                                step = 2,
+                                )
+                                ], style = Dict("float" => "left", "width" => "65%", "display" => "inline-block")
+                                )
                 ], style = Dict("display" => "inline-block")
-            )
+            ),
         ]
     )
 end
@@ -166,11 +178,10 @@ callback!(app,
         Input("y_range2i", "value"),
         Input("z_range1i", "value"),
         Input("z_range2i", "value"),
-        Input("vector_field", "value")
+        Input("vector_field", "value"),
+        Input("field_density", "value")
         ) do return_value, dropdown_value, u_min, u_max, v_min, v_max,
-            x_min, x_max, y_min, y_max, z_min, z_max, field
-
-            density = 10
+            x_min, x_max, y_min, y_max, z_min, z_max, field, density
 
             if dropdown_value == options_[1] # _______________parametric
 
@@ -212,6 +223,9 @@ callback!(app,
                             @eval (isa($X(-2, 3), Array{Float64, 1}))
                             @eval (isa($Y(-2, 3), Array{Float64, 1}))
                             @eval (isa($Z(-2, 3), Array{Float64, 1}))
+                            @eval (isa($Fx(-2), Number))
+                            @eval (isa($Fy(-2), Number))
+                            @eval (isa($Fz(-2), Number))
                         catch e
                             X = parse_function("0", :u, :v)
                             Y = parse_function("0", :u, :v)
@@ -248,6 +262,9 @@ callback!(app,
                     Fx = parse_function(string(F[1]), :x)
                     Fy = parse_function(string(F[2]), :y)
                     Fz = parse_function(string(F[3]), :z)
+                    @eval (isa($Fx(-2), Number))
+                    @eval (isa($Fy(-2), Number))
+                    @eval (isa($Fz(-2), Number))
                 catch e
                     x_min = y_min = z_min = -2
                     x_max = y_max = z_max = 2

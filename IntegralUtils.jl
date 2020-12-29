@@ -319,21 +319,20 @@ coeff(A::Tuple{Number, Number}, n::Number)::Float64 = (A[2] - A[1]) / (3 * n)
 
 
 """
-    ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function; ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
+    ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Float64
 
 Determine flux of vector field `F` through a 3d region using Gauss-Ostrogradski theorem and Simpson's rule for ``ξ⋅υ⋅ζ`` nodes.
 
 # Examples
 ```
-julia> ∯((x, y, z) -> [x, y, z], (0, 1), (x, y) -> 0, (x, y) -> 1, x -> 0, x -> 1)
+julia> ∯((x, y, z) -> [x, y, z], (0, 1), (x, y) -> 0, (x, y) -> 1, x -> 0, x -> 1, 2, 2, 2)
 3.0000000000163776
 
-julia> ∯((x, y, z) -> [x^2, y^2, z^2], (-1, 1), (x, y) -> 0, (x, y) -> x^2+y^2, x -> -1, x -> 1; ξ = 6, υ = 4, ζ = 2)
+julia> ∯((x, y, z) -> [x^2, y^2, z^2], (-1, 1), (x, y) -> 0, (x, y) -> x^2+y^2, x -> -1, x -> 1, 6, 4, 2)
 2.5488967009810803
 ```
 """
-function ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function;
-    ξ::Int = 2, υ::Int = 2, ζ::Int = 2)::Float64
+function ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Float64
 
     weights = create_weights(X, ρ, η, ϕ, ψ, ξ, υ, ζ)
     points = split_region(X, ρ, η, ϕ, ψ, ξ, υ, ζ)
@@ -343,25 +342,149 @@ end
 
 
 """
-    ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function; μ::Int = 2, ν::Int = 2)::Float64
+    ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Float64
 
 Determine flux of vector field `F` through a 2d region using Jacobian and Simpson's rule for ``μ⋅ν`` nodes.
 
 # Examples
 ```
-julia> ∯((x, y, z) -> [x, y, z], (u, v) -> [cos(u), sin(u), v], (0, 2π), u -> 0, u -> u)
+julia> ∯((x, y, z) -> [x, y, z], (u, v) -> [cos(u), sin(u), v], (0, 2π), u -> 0, u -> u, 2, 2)
 19.739208804825942
 
-julia> ∯((x, y, z) -> [x^2, y^2, z^2], (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0, u -> 4-u; μ = 8, ν = 10)
+julia> ∯((x, y, z) -> [x^2, y^2, z^2], (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0, u -> 4-u, 8, 10)
 64.00000000410644
 ```
 """
-function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
-        μ::Int = 2, ν::Int = 2)::Float64
+function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Float64
     points = split_region(U, ϕ, ψ, μ, ν)
     weights = create_weights(U, ϕ, ψ, μ, ν)
     return sum(transform.(F, r, points) .* weights') * prod(coeff(interval, steps)
             for (interval, steps) in zip((U, (0, 1)), (μ, ν)))
+end
+
+
+"""
+    draw_points(Xᵢ::LinRange{Float64}, ϕ::Function, ψ::Function, N::Int)::Array{Array{Float64, 1}, 1}
+
+Choose randomly 2d points from a rectangle that bounds a region.
+
+# Examples
+```
+julia> draw_points(LinRange(0, 1, 11), x -> 0, x -> 1, 11)
+11-element Array{Array{Float64,1},1}:
+ [0.2, 0.4]
+ [0.3, 0.7]
+ [0.5, 1.0]
+ [0.2, 0.8]
+ [0.1, 0.5]
+ [0.1, 0.3]
+ [1.0, 0.3]
+ [0.9, 0.0]
+ [0.6, 0.5]
+ [0.7, 0.8]
+ [0.1, 1.0]
+
+julia> draw_points(LinRange(1, 2, 5), x -> 0, x -> log(x), 5)
+5-element Array{Array{Float64,1},1}:
+ [2.0, 0.0]
+ [1.25, 0.34657359027997264]
+ [1.5, 0.17328679513998632]
+ [1.75, 0.17328679513998632]
+ [1.5, 0.0]
+```
+"""
+function draw_points(Xᵢ::LinRange{Float64}, ϕ::Function, ψ::Function, N::Int)::Array{Array{Float64, 1}, 1}
+    Yᵢ = LinRange(min(ϕ.(Xᵢ)...), max(ψ.(Xᵢ)...), N)
+    return [[rand(Xᵢ), rand(Yᵢ)] for i in 1:N]
+end
+
+
+"""
+    draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, ρ::Function, η::Function, N::Int)::Array{Array{Float64, 1}, 1}
+
+Choose randomly 3d points from a cuboid that bounds a region.
+
+# Examples
+```
+julia> draw_points(LinRange(0, 1, 5), LinRange(0, 1, 5), (x, y) -> 0, (x, y) -> 1, 11)
+11-element Array{Array{Float64,1},1}:
+ [0.0, 0.5, 0.0]
+ [0.0, 0.75, 0.2]
+ [0.5, 0.0, 0.8]
+ [0.5, 0.25, 0.1]
+ [0.75, 0.25, 0.3]
+ [0.25, 0.5, 0.5]
+ [0.25, 0.25, 0.4]
+ [0.5, 0.25, 0.4]
+ [0.5, 0.75, 0.4]
+ [0.25, 0.0, 1.0]
+ [0.75, 1.0, 0.1]
+
+julia> draw_points(LinRange(0, 1, 5), LinRange(0, 1, 5), (x, y) -> 0, (x, y) -> sqrt(x+y), 11)
+11-element Array{Array{Float64,1},1}:
+ [0.75, 0.0, 0.28284271247461906]
+ [0.75, 0.25, 0.4242640687119285]
+ [0.5, 0.5, 0.5656854249492381]
+ [1.0, 0.5, 1.2727922061357857]
+ [0.5, 0.0, 1.1313708498984762]
+ [0.5, 1.0, 0.5656854249492381]
+ [0.75, 0.0, 1.1313708498984762]
+ [0.75, 0.0, 0.848528137423857]
+ [1.0, 0.5, 0.7071067811865476]
+ [0.75, 1.0, 1.4142135623730951]
+ [0.5, 1.0, 0.848528137423857]
+```
+"""
+function draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, ρ::Function, η::Function, N::Int)::Array{Array{Float64, 1}, 1}
+    unzip(f, P) = f(P...)
+    Zᵢ = LinRange(min(unzip.(ρ, zip(Xᵢ, Yᵢ))...), max(unzip.(η, zip(Xᵢ, Yᵢ))...), N)
+    return [[rand(Xᵢ), rand(Yᵢ), rand(Zᵢ)] for i in 1:N]
+end
+
+
+"""
+    ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, N::Int)::Float64
+
+Determine flux of vector field `F` through a 3d region using Gauss-Ostrogradski theorem and Monte Carlo method for `N` random points.
+
+# Examples
+```
+julia> ∯((x, y, z) -> [x, y, z], (0, 1), (x, y) -> 0, (x, y) -> 1, x -> 0, x -> 1, 10000)
+3.00000000002332
+
+julia> ∯((x, y, z) -> [x^2, y^2, z^2], (-1, 1), (x, y) -> 0, (x, y) -> x^2+y^2, x -> -1, x -> 1, 1000000)
+2.4837039282914986
+```
+"""
+function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, N::Int)::Float64
+    Uᵢ = LinRange(U..., N)
+    points = draw_points(Uᵢ, ϕ, ψ, N)
+    validate(P::Array{Float64, 1}) = ϕ(P[1]) <= P[2] <= ψ(P[1]) ? transform(F, r, P) : 0.0
+    return sum(validate.(points)) * (U[2] - U[1]) * (max(ψ.(Uᵢ)...) - min(ϕ.(Uᵢ)...)) / N
+end
+
+
+"""
+    ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, N::Int)::Float64
+
+Determine flux of vector field `F` through a 2d region using Jacobian and Monte Carlo method for `N` random points.
+
+# Examples
+```
+julia> ∯((x, y, z) -> [x, y, z], (u, v) -> [cos(u), sin(u), v], (0, 2π), u -> 0, u -> u, 10000)
+19.755000172505373
+
+julia> ∯((x, y, z) -> [x^2, y^2, z^2], (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0, u -> 4-u, 1000000)
+64.06677011718612
+```
+"""
+function ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, N::Int)::Float64
+    Xᵢ = LinRange(X..., N)
+    Yᵢ = LinRange(min(ϕ.(Xᵢ)...), max(ψ.(Xᵢ)...), N)
+    unzip(f, P) = f(P...)
+    points = draw_points(Xᵢ, Yᵢ, ρ, η, N)
+    validate(P::Array{Float64, 1}) = ϕ(P[1]) <= P[2] <= ψ(P[1]) && ρ(P[1:2]...) <= P[3] <= η(P[1:2]...) ? divergence(F, P) : 0.0
+    return sum(validate.(points)) * (X[2] - X[1]) * (max(Yᵢ...) - min(Yᵢ...)) * (max(unzip.(η, zip(Xᵢ, Yᵢ))...) - min(unzip.(ρ, zip(Xᵢ, Yᵢ))...)) / N
 end
 
 
@@ -437,7 +560,7 @@ parse_num(value::String)::Float64 = eval(Meta.parse(value))
 
 
 """
-    Φ(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function; ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
+    Φ(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function; ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
 
 Determine a flux of a vector field `F` through a surface.
 
@@ -446,25 +569,31 @@ Determine a flux of a vector field `F` through a surface.
 julia> Φ((x, y, z) -> [x, y, z], (0, 1), (x, y) -> 0, (x, y) -> 1, x -> 0, x -> 1)
 3
 
-julia> Φ((x, y, z) -> [-y, x, 0], (-1, 1), (x, y) -> 0, (x, y) -> sqrt(2-y^2-x^2), x -> -sqrt(1-x^2), x -> sqrt(1-x^2))
+julia> Φ((x, y, z) -> [-y, x, 0], (-1, 1), (x, y) -> 0, (x, y) -> sqrt(2-y^2-x^2), x -> -sqrt(1-x^2), x -> sqrt(1-x^2); technique = "Monte Carlo", ϵ = 0.1)
 0
 ```
 """
 function Φ(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function;
-     ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
-    Φₙ = ∯(F, X, ρ, η, ϕ, ψ; ξ = 2n, υ = 2n, ζ = 2n)
+     ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
+    if technique in ("Simpson", "Monte Carlo")
+        surface_integral(n) = technique == "Simpson" ? ∯(F, X, ρ, η, ϕ, ψ, 2n, 2n, 2n) : ∯(F, X, ρ, η, ϕ, ψ, 100n)
+    else
+        throw(ArgumentError("Invalid technique name."))
+    end
+    n = 1
+    Φₙ = surface_integral(n)
     n += 1
-    Φₙ₊₁ = ∯(F, X, ρ, η, ϕ, ψ; ξ = 2n, υ = 2n, ζ = 2n)
+    Φₙ₊₁ = surface_integral(n)
     while abs(Φₙ₊₁ - Φₙ) > ϵ
         n += 1
-        Φₙ, Φₙ₊₁ = Φₙ₊₁, ∯(F, X, ρ, η, ϕ, ψ; ξ = 2n, υ = 2n, ζ = 2n)
+        Φₙ, Φₙ₊₁ = Φₙ₊₁, surface_integral(n)
     end
     return round_float(Φₙ₊₁, ϵ)
 end
 
 
 """
-    Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function; ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
+    Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function; ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
 
 Determine a flux of a vector field `F` through a surface parametrized by `r`.
 
@@ -473,21 +602,27 @@ Determine a flux of a vector field `F` through a surface parametrized by `r`.
 julia> Φ((x, y, z) -> (x^2, y^2, z^2), (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0, u -> 4-u)
 64
 
-julia> Φ((x, y, z) -> [x-y, y-z, z-x], (u, v) -> [(cos(u)+2)cos(v), (cos(u)+2)sin(v), sin(u)], (0, 2π), u -> 0, u -> 2π; ϵ = 1e-6)
--118.435273
+julia> Φ((x, y, z) -> [x-y, y-z, z-x], (u, v) -> [(cos(u)+2)cos(v), (cos(u)+2)sin(v), sin(u)], (0, 2π), u -> 0, u -> 2π; technique = "Monte Carlo", ϵ = 0.01)
+-118.25
 ```
 """
 function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
-     ϵ::Number = 1e-3, n::Int = 1)::Union{Int, Float64}
-    Φₙ = ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
-    n₀ = n
-    n += 1
-    Φₙ₊ₖ = ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
-    while abs(Φₙ₊ₖ - Φₙ) > ϵ
-        n += 1
-        Φₙ, Φₙ₊ₖ = Φₙ₊ₖ, ∯(F, r, U, ϕ, ψ; μ = 2n, ν = 2n)
+     ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
+    if technique in ("Simpson", "Monte Carlo")
+        surface_integral(n::Int) = technique == "Simpson" ? ∯(F, r, U, ϕ, ψ, 2n, 2n) : ∯(F, r, U, ϕ, ψ, 100n)
+    else
+        throw(ArgumentError("Invalid technique name."))
     end
-    return round_float(Φₙ₊ₖ, ϵ)
+    n = 1
+    Φₙ = surface_integral(n)
+    n += 1
+    Φₙ₊₁ = surface_integral(n)
+    while abs(Φₙ₊₁ - Φₙ) > ϵ
+        n += 1
+        Φₙ, Φₙ₊₁ = Φₙ₊₁, surface_integral(n)
+    end
+    return round_float(Φₙ₊₁, ϵ)
 end
+
 
 end

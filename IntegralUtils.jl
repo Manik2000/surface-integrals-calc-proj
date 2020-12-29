@@ -543,6 +543,23 @@ parse_function(body::String, args::Symbol...)::Function = eval(Meta.parse(argume
 
 
 """
+    parse_function(name::Symbol, body::String, args::Symbol)::Function
+
+Parse a body of a function and argument and function name's symbols to the actual function.
+
+# Examples
+```
+julia> parse_function(:f, "2cos(x)", :x)
+f (generic function with 1 method)
+
+julia> parse_function(:g, "u^2-7u", :u)
+g (generic function with 1 method)
+```
+"""
+parse_function(body::String, args::Symbol)::Function = eval(Meta.parse(string(args) * "->" * body))
+
+
+"""
     parse_num(value::String)::Float64
 
 Parse a number or an expression from string to float.

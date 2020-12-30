@@ -7,8 +7,11 @@ include("GraphingUtils.jl")
 using .IntegralUtils
 using .GraphingUtils
 
+
+mathjax = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"
 app = dash(external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"],
-            assets_folder="assets")
+            assets_folder="assets",
+            external_scripts=[mathjax])
 
 options_ = ["parametric representation", "z = f(x, y)"]
 
@@ -26,15 +29,21 @@ app.layout = html_div() do
                         style = Dict("width" => "20vw", "display" => "inline-block")
                         ),
                     html_hr(),
-                    html_label(id="vector_field_l", "Enter your vector field formula"),
+                    html_label(id="vector_field_l", "\$\$\\text{Enter your vector field formula}\$\$"),
+                    html_div(id="field", children=[
+                    html_label(id="mFx", "\$\$\\vec{F}\\hat{i}\$\$"),
                     dcc_input(id="Fx", type="text", value="x"),
+                    html_label(id="mFy", "\$\$\\vec{F}\\hat{j}\$\$"),
                     dcc_input(id="Fy", type="text", value="y"),
-                    dcc_input(id="Fz", type="text", value="z"),
+                    html_label(id="mFz", "\$\$\\vec{F}\\hat{k}\$\$"),
+                    dcc_input(id="Fz", type="text", value="z")
+                    ]),
                     html_div(id="parametric_bounds", children=[
+
                         dcc_input(id="r1", type="text", value="sqrt(1/4 + u^2) * cos(v)"),
                         dcc_input(id="r2", type="text", value="sqrt(1/4 + u^2) * sin(v)"),
                         dcc_input(id="r3", type="text", value="u"),
-                        html_label(id="u_range1", "Insert the lower bound for u"),
+                        html_label(id="u_range1", "Insert the lower bound for u \$\$y_{2323}\$\$"),
                         dcc_input(id="u_range1i", type="text", value="-1"),
                         html_label(id="u_range2", "Insert the upper bound for u"),
                         dcc_input(id="u_range2i", type="text", value="1"),
@@ -168,7 +177,8 @@ callback!(app,
                 ϕ = parse_function(v_min, :u)
                 ψ = parse_function(v_max, :u)
                 value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; ϵ = ϵ, technique = technique)
-                return html_h5("The value of the surface integral is $(@eval ($value($q, $p, $ϕ, $ψ))).")
+                value_ = @eval abs(($value($q, $p, $ϕ, $ψ)))
+                return dcc_markdown("|&#x03A6;| = $(value_).")
             catch e
                 return html_h5("Wrong input. Try again.")
             end
@@ -181,7 +191,8 @@ callback!(app,
                 ρ = parse_function(z_min, :x, :y)
                 η = parse_function(z_max, :x, :y)
                 value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; ϵ = ϵ, technique = technique)
-                return html_h5("The value of the surface integral is $(@eval ($value($q, $ρ, $η, $ϕ, $ψ))).")
+                value_ = @eval abs(($value($q, $ρ, $η, $ϕ, $ψ)))
+                return dcc_markdown("|&#x03A6;| =  $(value_)")
             catch e
                 return html_h5("Wrong input. Try again.")
             end

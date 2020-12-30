@@ -7,7 +7,7 @@ export parse_function, parse_num, Φ
 
 
 """
-    ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Number = 1e-3)::Union{Number, Array{Number, 1}} where T <: Number
+    ∂(f::Function, var::Symbol, P₀::Array{T, 1}; Δ::Real = 1e-3)::Union{Real, Array{Real, 1}} where T <: Real
 
 Compute a partial derivative of `f` with respect to `var` at a point `P₀`.
 
@@ -32,7 +32,7 @@ julia> ∂((u, v) -> [cos(u), sin(u), v], :u, [0, 1])
   0.0
 ```
 """
-function ∂(f::Function, var::Symbol, P₀::Array{T1, 1}; Δ::Number = 1e-6)::Union{Number, Array{T2, 1} where T2 <: Number} where T1 <: Number
+function ∂(f::Function, var::Symbol, P₀::Array{T1, 1}; Δ::Real = 1e-6)::Union{Real, Array{T2, 1} where T2 <: Real} where T1 <: Real
     if length(P₀) == 3
         limits = Dict(sym=>vec for (sym, vec) in
                 zip((:x, :y, :z), [Δ*Diagonal(ones((3, 3)))[3i-2:3i] for i in 1:3]))
@@ -45,7 +45,7 @@ end
 
 
 """
-    divergence(F::Function, P₀::Array{T, 1})::Number where T <: Number
+    divergence(F::Function, P₀::Array{T, 1})::Real where T <: Real
 
 Calculate the divergence of a vector field `F` at a point `P₀`.
 
@@ -58,32 +58,32 @@ julia> divergence((x, y, z) -> [z * cos(x), z * sin(y), z - cos(x+y)], [0, 0, 1]
 1.9999994998731165
 ```
 """
-function divergence(F::Function, P₀::Array{T, 1})::Number where T <: Number
+function divergence(F::Function, P₀::Array{T, 1})::Real where T <: Real
    return sum(hcat([∂(F, sym, P₀) for sym in (:x, :y, :z)]...)' .* Diagonal(ones(3, 3)))
 end
 
 
 """
-    normal(r::Function, P₀::Array{T, 1})::Array{Number, 1} where T <: Number
+    normal(r::Function, P₀::Array{T, 1})::Array{Real, 1} where T <: Real
 
 Compute a normal vector to the surface parametrized by `r` at point `P₀`.
 
 # Examples
 ```
 julia> normal((u, v) -> [cos(u)cos(v), sin(u)cos(v), sin(v)], [π/2, 0])
-3-element Array{Number,1}:
+3-element Array{Real,1}:
  -5.000444502910872e-7
   0.9999999999174001
   5.000444502499502e-7
 
 julia> normal((u, v) -> [cos(u), sin(u), v], [π/2, 1])
-3-element Array{Number,1}:
+3-element Array{Real,1}:
  -5.000444502500335e-7
  0.9999999998353001
  0.0
 ```
 """
-function normal(r::Function, P₀::Array{T, 1})::Array{Number, 1} where T <: Number
+function normal(r::Function, P₀::Array{T, 1})::Array{Real, 1} where T <: Real
     rᵤ = ∂(r, :u, P₀)
     rᵥ = ∂(r, :v, P₀)
     return cross(rᵤ, rᵥ)
@@ -91,7 +91,7 @@ end
 
 
 """
-    transform(F::Function, r::Function, P₀::Array{T, 1})::Number where T <: Number
+    transform(F::Function, r::Function, P₀::Array{T, 1})::Real where T <: Real
 
 Convert ``F(P₀)⋅dS`` to ``F(r(P₀))dudv``.
 
@@ -104,13 +104,13 @@ julia> transform((x, y, z) -> [-y, x, 0], (u, v) -> [(cos(u) + 2)cos(v), (cos(u)
 -4.500400052619784e-6
 ```
 """
-function transform(F::Function, r::Function, P₀::Array{T, 1})::Number where T <: Number
+function transform(F::Function, r::Function, P₀::Array{T, 1})::Real where T <: Real
    return dot(F(r(P₀...)...), normal(r, P₀))
 end
 
 
 """
-    create_weights(X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
+    create_weights(X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
 
 Build a 3d matrix according to composite Simpson's rule for triple integrals.
 
@@ -157,7 +157,7 @@ julia> create_weights((0, 1), (x, y) -> 0, (x, y) -> 1 - y - x, x -> 0, x -> 1 -
   0.0   0.0       0.0        0.0      0.0
 ```
 """
-function create_weights(X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function,
+function create_weights(X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function,
     ξ::Int, υ::Int, ζ::Int)::Array{Float64, 3}
     Xᵢ = LinRange(X... , ξ + 1)
     lengths = ψ.(Xᵢ) - ϕ.(Xᵢ)
@@ -169,7 +169,7 @@ end
 
 
 """
-    create_weights(U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Float64, 2}
+    create_weights(U::Tuple{Real, Real}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Float64, 2}
 
 Create a 2d matrix of weights according to composite simpson rule for double integrals.
 
@@ -198,7 +198,7 @@ julia> create_weights((0, π/4), x -> sin(x), x -> cos(x), 8, 4)
  1.11022e-16   4.44089e-16  2.22045e-16   4.44089e-16  1.11022e-16
 ```
 """
-function create_weights(U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Float64, 2}
+function create_weights(U::Tuple{Real, Real}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Float64, 2}
     Uᵢ = LinRange(U..., μ + 1)
     lengths = ψ.(Uᵢ) - ϕ.(Uᵢ)
     return vcat([1], 4 * ones(μ - 2) - repeat([0, 2], (μ - 2) ÷ 2), [4, 1]) .*
@@ -207,7 +207,7 @@ end
 
 
 """
-    split_region(X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Array{Array{Float64, 1}, 3}
+    split_region(X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Array{Array{Float64, 1}, 3}
 
 Divide a 3d region into points on space.
 
@@ -260,7 +260,7 @@ julia> split_region((-1, 1), (x, y) -> 0, (x, y) -> sqrt(2-x^2-y^2), x -> -sqrt(
  [0.5, 0.433013, 0.0]    [0.5, 0.866025, 1.0]    [1.0, 0.0, 0.5]  [1.0, 0.0, 0.0]  [1.0, 0.0, 1.0]
 ```
 """
-function split_region(X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function,
+function split_region(X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function,
     ξ::Int, υ::Int, ζ::Int)::Array{Array{Float64, 1}, 3}
     Xᵢ = LinRange(X..., ξ + 1)
     return reshape([[x, y, z] for x in Xᵢ for y in LinRange(ϕ(x), ψ(x), υ + 1) for z in LinRange(ρ(x, y), η(x, y), ζ + 1)], ξ + 1, υ + 1, :)
@@ -268,7 +268,7 @@ end
 
 
 """
-    split_region(Uᵢ::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
+    split_region(Uᵢ::Tuple{Real, Real}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
 
 Divide a 2d region into points on plane.
 
@@ -295,14 +295,14 @@ julia> split_region((0, 2), x -> -sqrt(4-x^2), x -> sqrt(4-x^2), 6, 6)
  [0.0, 2.0]        [0.333333, 1.97203]    [0.666667, 1.88562]    [1.0, 1.73205]   [1.33333, 1.49071]    [1.66667, 1.10554]    [2.0, 0.0]
 ```
 """
-function split_region(U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
+function split_region(U::Tuple{Real, Real}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Array{Array{Float64, 1}, 2}
     Uᵢ = LinRange(U..., μ + 1)
     return reshape([[u, v] for u in Uᵢ for v in LinRange(ϕ(u), ψ(u), ν + 1)], μ + 1, :)
 end
 
 
 """
-    coeff(A::Tuple{Number, Number}, n::Int)::Float64
+    coeff(A::Tuple{Real, Real}, n::Int)::Float64
 
 Compute a coefficient for composite Simpson's rule with `n` midpoints and interval `A`.
 
@@ -315,11 +315,11 @@ julia> coeff((0, 4), 4)
 0.3333333333333333
 ```
 """
-coeff(A::Tuple{Number, Number}, n::Number)::Float64 = (A[2] - A[1]) / (3 * n)
+coeff(A::Tuple{Real, Real}, n::Real)::Float64 = (A[2] - A[1]) / (3 * n)
 
 
 """
-    ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Float64
+    ∯(F::Function, X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Float64
 
 Determine flux of vector field `F` through a 3d region using Gauss-Ostrogradski theorem and Simpson's rule for ``ξ⋅υ⋅ζ`` nodes.
 
@@ -332,7 +332,7 @@ julia> ∯((x, y, z) -> [x^2, y^2, z^2], (-1, 1), (x, y) -> 0, (x, y) -> x^2+y^2
 2.5488967009810803
 ```
 """
-function ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Float64
+function ∯(F::Function, X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function, ξ::Int, υ::Int, ζ::Int)::Float64
 
     weights = create_weights(X, ρ, η, ϕ, ψ, ξ, υ, ζ)
     points = split_region(X, ρ, η, ϕ, ψ, ξ, υ, ζ)
@@ -342,7 +342,7 @@ end
 
 
 """
-    ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Float64
+    ∯(F::Function, r::Function, U::Tuple{Real, Real}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Float64
 
 Determine flux of vector field `F` through a 2d region using Jacobian and Simpson's rule for ``μ⋅ν`` nodes.
 
@@ -355,7 +355,7 @@ julia> ∯((x, y, z) -> [x^2, y^2, z^2], (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0
 64.00000000410644
 ```
 """
-function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Float64
+function ∯(F::Function, r::Function, U::Tuple{Real, Real}, ϕ::Function, ψ::Function, μ::Int, ν::Int)::Float64
     points = split_region(U, ϕ, ψ, μ, ν)
     weights = create_weights(U, ϕ, ψ, μ, ν)
     return sum(transform.(F, r, points) .* weights') * prod(coeff(interval, steps)
@@ -364,39 +364,31 @@ end
 
 
 """
-    draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, ρ::Function, η::Function, N::Int)::Array{Array{Float64, 1}, 1}
+    draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, Zᵢ::LinRange{Float64}, N::Int)::Array{Array{Float64, 1}, 1}
 
-Choose randomly 3d points from a cuboid that bounds a region.
+Choose randomly 3d points from a cuboid.
 
 # Examples
 ```
-julia> draw_points(LinRange(0, 1, 5), LinRange(0, 1, 5), (x, y) -> 0, (x, y) -> 1, 11)
+julia> draw_points(LinRange(0, 1, 5), LinRange(0, 1, 5), LinRange(0, 1, 5), 11)
 11-element Array{Array{Float64,1},1}:
- [0.0, 0.5, 0.0]
- [0.0, 0.75, 0.2]
- [0.5, 0.0, 0.8]
- [0.5, 0.25, 0.1]
- [0.75, 0.25, 0.3]
- [0.25, 0.5, 0.5]
- [0.25, 0.25, 0.4]
- [0.5, 0.25, 0.4]
- [0.5, 0.75, 0.4]
- [0.25, 0.0, 1.0]
- [0.75, 1.0, 0.1]
+ [0.75, 0.0, 0.5]
+ [1.0, 0.25, 1.0]
+ [1.0, 0.0, 1.0]
+ [1.0, 0.5, 0.25]
+ [0.5, 0.25, 1.0]
+ [0.5, 0.0, 0.0]
+ [0.5, 0.5, 0.75]
+ [1.0, 0.75, 1.0]
+ [0.5, 1.0, 0.0]
+ [0.5, 1.0, 1.0]
+ [0.75, 0.75, 1.0]
 
-julia> draw_points(LinRange(0, 1, 5), LinRange(0, 1, 5), (x, y) -> 0, (x, y) -> sqrt(x+y), 11)
-11-element Array{Array{Float64,1},1}:
- [0.75, 0.0, 0.28284271247461906]
- [0.75, 0.25, 0.4242640687119285]
- [0.5, 0.5, 0.5656854249492381]
- [1.0, 0.5, 1.2727922061357857]
- [0.5, 0.0, 1.1313708498984762]
- [0.5, 1.0, 0.5656854249492381]
- [0.75, 0.0, 1.1313708498984762]
- [0.75, 0.0, 0.848528137423857]
- [1.0, 0.5, 0.7071067811865476]
- [0.75, 1.0, 1.4142135623730951]
- [0.5, 1.0, 0.848528137423857]
+julia> draw_points(LinRange(-1, 1, 5), LinRange(0, π, 19), LinRange(2, 2, 2), 3)
+3-element Array{Array{Float64,1},1}:
+ [-0.5, 2.0943951023931953, 2.0]
+ [0.0, 2.96705972839036, 2.0]
+ [0.0, 2.443460952792061, 2.0]
 ```
 """
 function draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, Zᵢ::LinRange{Float64}, N::Int)::Array{Array{Float64, 1}, 1}
@@ -404,19 +396,75 @@ function draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, Zᵢ::Lin
 end
 
 
+"""
+    draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, N::Int)::Array{Array{Float64, 1}, 1}
+
+Choose randomly 2d points from a rectangle.
+
+# Examples
+```
+julia> draw_points(LinRange(0, 1, 5), LinRange(0, 1, 5), 11)
+11-element Array{Array{Float64,1},1}:
+ [0.5, 1.0]
+ [0.75, 0.75]
+ [0.5, 0.75]
+ [0.0, 0.25]
+ [1.0, 1.0]
+ [0.75, 0.25]
+ [0.25, 0.25]
+ [0.5, 0.75]
+ [1.0, 0.5]
+ [0.5, 1.0]
+ [0.0, 0.25]
+
+julia> draw_points(LinRange(-1, 1, 5), LinRange(2, 2, 19), 3)
+3-element Array{Array{Float64,1},1}:
+ [0.5, 2.0]
+ [-1.0, 2.0]
+ [-0.5, 2.0]
+```
+"""
 function draw_points(Xᵢ::LinRange{Float64}, Yᵢ::LinRange{Float64}, N::Int)::Array{Array{Float64, 1}, 1}
     return [[rand(Xᵢ), rand(Yᵢ)] for i in 1:N]
 end
 
 
+"""
+    surface_part(F::Function, r::Function, S::Array{LinRange{Float64}, 1}, N::Int, ϕ::Function, ψ::Function)::Float64
+
+Compute flux over one of parts of a rectangle using Monte Carlo method.
+
+# Examples
+```
+julia> surface_part((x, y, z) -> [x, y, z], (u, v) -> [u, v, 0], [LinRange(0, 1, 100), LinRange(0, 1, 100)], 1000, u -> 0, u -> u)
+0.0
+
+julia> surface_part((x, y, z) -> [x^2, y^2, z^2], (u, v) -> [u, v, u-v], [LinRange(0, 1, 100), LinRange(-1, 1, 100)], 100000, u -> -u, u -> u)
+0.33893245180194237
+```
+"""
 function surface_part(F::Function, r::Function, S::Array{LinRange{Float64}, 1}, N::Int, ϕ::Function, ψ::Function)::Float64
-    Uᵢ, Vᵢ = S[1]
+    Uᵢ, Vᵢ = S
     points = draw_points(Uᵢ, Vᵢ, N)
     validate(P::Array{Float64, 1}) = ϕ(P[1]) <= P[2] <= ψ(P[1]) ? transform(F, r, P) : 0.0
     return sum(validate.(points)) * (max(Uᵢ...) - min(Uᵢ...)) * (max(Vᵢ...) - min(Vᵢ...)) / N
 end
 
 
+"""
+    surface_part(F::Function, S::Array{LinRange{Float64}, 1}, N::Int, ρ::Function, η::Function, ϕ::Function, ψ::Function)::Float64
+
+Compute flux over one of parts of a cuboid using Monte Carlo method.
+
+# Examples
+```
+julia> surface_part((x, y, z) -> [x, y, z], [LinRange(0, 1, 100), LinRange(0, 1, 100), LinRange(0, 1, 100)], 1000, (x, y) -> 0, (x, y) -> 1, x -> 0, x -> x)
+1.4940000000104536
+
+julia> surface_part((x, y, z) -> [x^2, y^2, z^2], [LinRange(0, 1, 100), LinRange(0, 1, 100), LinRange(-1, 1, 100)], 100000, (x, y) -> 0, (x, y) -> x+y, x -> -x, x -> x)
+1.301682061621842
+```
+"""
 function surface_part(F::Function, S::Array{LinRange{Float64}, 1}, N::Int, ρ::Function, η::Function, ϕ::Function, ψ::Function)::Float64
     Xᵢ, Yᵢ, Zᵢ = S
     points = draw_points(Xᵢ, Yᵢ, Zᵢ, N)
@@ -426,20 +474,20 @@ end
 
 
 """
-    ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, N::Int)::Float64
+    ∯(F::Function, r::Function, U::Tuple{Real, Real}, ϕ::Function, ψ::Function, N::Int, parts::Float64)::Float64
 
 Determine flux of vector field `F` through a 3d region using Gauss-Ostrogradski theorem and Monte Carlo method for `N` random points.
 
 # Examples
 ```
-julia> ∯((x, y, z) -> [x, y, z], (0, 1), (x, y) -> 0, (x, y) -> 1, x -> 0, x -> 1, 10000)
-3.00000000002332
+julia> ∯((x, y, z) -> [x, y, z], (0, 1), (x, y) -> 0, (x, y) -> 1, x -> 0, x -> 1, 10000, 16.0)
+2.999400020649781
 
-julia> ∯((x, y, z) -> [x^2, y^2, z^2], (-1, 1), (x, y) -> 0, (x, y) -> x^2+y^2, x -> -1, x -> 1, 1000000)
-2.4837039282914986
+julia> ∯((x, y, z) -> [x^2, y^2, z^2], (-1, 1), (x, y) -> 0, (x, y) -> x^2+y^2, x -> -1, x -> 1, 100, 256.0)
+2.4227719867790514
 ```
 """
-function ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, N::Int, parts::Float64)::Float64
+function ∯(F::Function, r::Function, U::Tuple{Real, Real}, ϕ::Function, ψ::Function, N::Int, parts::Float64)::Float64
     x_part = Int(parts / 2)
     y_part = Int(parts / x_part)
     Uᵢ = LinRange(U..., x_part*N)
@@ -450,20 +498,20 @@ end
 
 
 """
-    ∯(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function, N::Int)::Float64
+    ∯(F::Function, X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function, N::Int, parts::Float64)::Float64
 
 Determine flux of vector field `F` through a 2d region using Jacobian and Monte Carlo method for `N` random points.
 
 # Examples
 ```
-julia> ∯((x, y, z) -> [x, y, z], (u, v) -> [cos(u), sin(u), v], (0, 2π), u -> 0, u -> u, 10000)
-19.755000172505373
+julia> ∯((x, y, z) -> [x, y, z], (u, v) -> [cos(u), sin(u), v], (0, 2π), u -> 0, u -> u, 10000, 16.0)
+19.776707787586332
 
-julia> ∯((x, y, z) -> [x^2, y^2, z^2], (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0, u -> 4-u, 1000000)
-64.06677011718612
+julia> ∯((x, y, z) -> [x^2, y^2, z^2], (u, v) -> [u, v, 4-u-v], (0, 4), u -> 0, u -> 4-u, 100000, 32.0)
+63.9916073475161
 ```
 """
-function ∯(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function, N::Int, parts::Float64)::Float64
+function ∯(F::Function, X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function, N::Int, parts::Float64)::Float64
     x_part = y_part = Int(parts / 4)
     z_part = Int(parts / 2x_part)
     Xᵢ = LinRange(X..., x_part*N)
@@ -478,7 +526,7 @@ end
 """
     round_float(α::Float64, ϵ::Float64)::Union{Float64, Int}
 
-Round `α` to the same number of digits as `ϵ` or nearest integer with `ϵ` accuracy.
+Round `α` to the same Real of digits as `ϵ` or nearest integer with `ϵ` accuracy.
 
 # Examples
 ```
@@ -549,7 +597,7 @@ parse_function(body::String, args::Symbol)::Function = eval(Meta.parse(string(ar
 """
     parse_num(value::String)::Float64
 
-Parse a number or an expression from string to float.
+Parse a Real or an expression from string to float.
 
 # Examples
 ```
@@ -564,7 +612,7 @@ parse_num(value::String)::Float64 = eval(Meta.parse(value))
 
 
 """
-    Φ(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function; ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
+    Φ(F::Function, X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function; ϵ::Real = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
 
 Determine a flux of a vector field `F` through a surface.
 
@@ -577,8 +625,8 @@ julia> Φ((x, y, z) -> [-y, x, 0], (-1, 1), (x, y) -> 0, (x, y) -> sqrt(2-y^2-x^
 0
 ```
 """
-function Φ(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function;
-     ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
+function Φ(F::Function, X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::Function, ψ::Function;
+     ϵ::Real = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
     if technique in ("Simpson", "Monte Carlo")
         surface_integral(n) = technique == "Simpson" ? ∯(F, X, ρ, η, ϕ, ψ, 2n, 2n, 2n) : ∯(F, X, ρ, η, ϕ, ψ, 100n, 4.0n)
     else
@@ -597,7 +645,7 @@ end
 
 
 """
-    Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function; ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
+    Φ(F::Function, r::Function, U::Tuple{Real, Real}, ϕ::Function, ψ::Function; ϵ::Real = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
 
 Determine a flux of a vector field `F` through a surface parametrized by `r`.
 
@@ -610,8 +658,8 @@ julia> Φ((x, y, z) -> [x-y, y-z, z-x], (u, v) -> [(cos(u)+2)cos(v), (cos(u)+2)s
 -118.25
 ```
 """
-function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
-     ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
+function Φ(F::Function, r::Function, U::Tuple{Real, Real}, ϕ::Function, ψ::Function;
+     ϵ::Real = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
     if technique in ("Simpson", "Monte Carlo")
         surface_integral(n::Int) = technique == "Simpson" ? ∯(F, r, U, ϕ, ψ, 2n, 2n) : ∯(F, r, U, ϕ, ψ, 100n, 4.0n)
     else

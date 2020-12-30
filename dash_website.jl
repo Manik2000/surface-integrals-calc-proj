@@ -168,7 +168,6 @@ callback!(app,
                 q = parse_function(vector_field, :x, :y, :z)
                 ϕ = parse_function(v_min, :u)
                 ψ = parse_function(v_max, :u)
-                ϵ = parse_num(ϵ)
                 value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; ϵ = ϵ, technique = technique)
                 return html_h5("The value of the surface integral is $(@eval ($value($q, $p, $ϕ, $ψ))).")
             catch e
@@ -220,13 +219,11 @@ callback!(app,
                         u_max = parse_num(u_max)
                         v_min = parse_function(v_min, :u)
                         v_max = parse_function(v_max, :u)
-                        N = parse_num(N)
                     catch e
                         u_min = -1
                         u_max = 1
                         v_min = parse_function("0", :u)
                         v_max = parse_function("2pi", :u)
-                        N = 100
                     end
 
                     if false
@@ -303,7 +300,6 @@ callback!(app,
                     @eval (isa($Fx(-2), Number))
                     @eval (isa($Fy(-2), Number))
                     @eval (isa($Fz(-2), Number))
-                    N = parse_num(N)
                 catch e
                     x_min = -2
                     y_min = parse_function("-2", :x)
@@ -314,7 +310,6 @@ callback!(app,
                     Fx = parse_function("0", :x)
                     Fy = parse_function("0", :y)
                     Fz = parse_function("0", :z)
-                    N = 100
                 end
 
                 if false#(x_min > x_max) | (y_min > y_max) | (z_min > z_max)

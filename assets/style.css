@@ -2,6 +2,52 @@ html {
   background-color: #FFFFFF;
 }
 
+h1. {
+  text-align: center;
+}
+
+#main {
+  display: grid;
+  grid-gap: 1px;
+}
+
+#inputs {
+  grid-column: 1;
+  width: 0.45%;
+}
+
+#graphing {
+  grid-column: 2;
+  margin: 0;
+  display: grid;
+  grid-gap: 10px;
+}
+
+#surface_plot {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+#field_density {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+#method {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+#integral_accuracy {
+  grid-column: 1;
+  grid-row: 4;
+}
+
+#graph_accuracy {
+  grid-column: 1;
+  grid-row: 5;
+}
+
 #field {
   display: grid;
   grid-gap: 8px;
@@ -46,7 +92,7 @@ html {
 
 
 #parametric_bounds {
-  grid-gap: 0.5px;
+  grid-gap: 2px;
 }
 
 #r1lab {

@@ -19,7 +19,7 @@ options_ = ["parametric representation", "z = f(x, y)"]
 app.layout = html_div() do
     html_div(children = [
     html_h1("\$\$\\text{Surface integrals calculator}\$\$", style=Dict("textAlign" => "center", "margin" => "3%")),
-    html_div(
+    html_div(id="header",
         children=[
             dcc_dropdown(
                 id = "dropdown",
@@ -29,7 +29,7 @@ app.layout = html_div() do
                 ),
                 ]
             ),
-    html_hr(),
+    html_hr(style=Dict("borderTop" => "1px dashed #d69c2f")),
     html_div(id="main", children=[
         html_div(id="inputs", children=[
             html_label(id="vector_field_l", "\$\$\\text{Enter your vector field formula}\$\$"),
@@ -75,7 +75,7 @@ app.layout = html_div() do
         ], style=Dict("display" => "none")
             ),
         html_div(id="output_")
-        ], style=style = (width = "48%", display = "inline-block", float = "left")),
+        ]),
     html_div(id="graphing", children=[
             dcc_graph(
                 id = "surface_plot",
@@ -91,7 +91,7 @@ app.layout = html_div() do
                                 width=600,
                                 height=600
                             )
-                ), style = Dict("width" => "48vw", "height" => "70vh")
+                )
             ),
             html_div(
                 children=[
@@ -103,15 +103,14 @@ app.layout = html_div() do
                         value = 6,
                         step = 2,
                         )
-                        ], style = Dict("float" => "left", "width" => "65%", "display" => "inline-block")
+                        ]
                         ),
             html_div(
                 children=[
                 dcc_dropdown(
                     id = "method",
                     options = [(label = i, value = i) for i in ("Simpson", "Monte Carlo")],
-                    value = "Simpson",
-                    style = Dict("width" => "20vw", "display" => "inline-block")
+                    value = "Simpson"
                     ),
                     dcc_slider(
                         id = "integral_accuracy",
@@ -131,7 +130,7 @@ app.layout = html_div() do
                         )
                 ]
             )
-        ], style=Dict("display" => "inline-block")
+        ]
     ),
 ])
 ])
@@ -182,7 +181,7 @@ callback!(app,
                 ψ = parse_function(v_max, :u)
                 value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; ϵ = ϵ, technique = technique)
                 value_ = @eval abs(($value($q, $p, $ϕ, $ψ)))
-                return html_h5("\$\$\\left|\\Phi\\right| = $(value_).\$\$")  # this has to be changed
+                return html_h5("|Φ| = $(value_).")  # this has to be changed
             catch e
                 return html_h5("\$\$\\text{Wrong input. Try again.}\$\$")
             end
@@ -196,7 +195,7 @@ callback!(app,
                 η = parse_function(z_max, :x, :y)
                 value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; ϵ = ϵ, technique = technique)
                 value_ = @eval abs(($value($q, $ρ, $η, $ϕ, $ψ)))
-                return html_h5("\$\$ \\left|\\Phi\\right| = $(value_). \$\$") # this also should be changed
+                return html_h5("|Φ| = $(value_).") # this also should be changed
             catch e
                 return html_h5("\$\$ \\text{Wrong input. Try again.} \$\$")
             end

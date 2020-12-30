@@ -95,7 +95,33 @@ app.layout = html_div() do
                                 step = 2,
                                 )
                                 ], style = Dict("float" => "left", "width" => "65%", "display" => "inline-block")
+                                ),
+                    html_div(
+                        children=[
+                        dcc_dropdown(
+                            id = "method",
+                            options = [(label = i, value = i) for i in ("Simpson", "Monte Carlo")],
+                            value = "Simpson",
+                            style = Dict("width" => "20vw", "display" => "inline-block")
+                            ),
+                            dcc_slider(
+                                id = "integral_accuracy",
+                                min = 1e-6,
+                                max = 0.1,
+                                marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.01:0.1]),
+                                value = 1e-3,
+                                step = 1e-6,
+                                ),
+                            dcc_slider(
+                                id = "graph_accuracy",
+                                min = 10,
+                                max = 1000,
+                                marks = Dict([Symbol(v) => Symbol(v) for v in 10:100:1000]),
+                                value = 100,
+                                step = 10,
                                 )
+                        ]
+                    )
                 ], style = Dict("display" => "inline-block")
             ),
         ]
@@ -121,6 +147,8 @@ callback!(app,
         Input("dropdown", "value"),
         Input("input", "value"),
         Input("vector_field", "value"),
+        Input("method", "value"),
+        Input("integral_accuracy", "value"),
         Input("u_range1i", "value"),
         Input("u_range2i", "value"),
         Input("v_range1i", "value"),
@@ -131,7 +159,7 @@ callback!(app,
         Input("y_range2i", "value"),
         Input("z_range1i", "value"),
         Input("z_range2i", "value")
-        ) do dropdown_value, return_value, vector_field, u_min, u_max,
+        ) do dropdown_value, return_value, vector_field, technique, ϵ, u_min, u_max,
             v_min, v_max, x_min, x_max, y_min, y_max, z_min, z_max
         if dropdown_value == options_[1]
             try
@@ -140,7 +168,8 @@ callback!(app,
                 q = parse_function(vector_field, :x, :y, :z)
                 ϕ = parse_function(v_min, :u)
                 ψ = parse_function(v_max, :u)
-                value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b)
+                ϵ = parse_num(ϵ)
+                value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; ϵ = ϵ, technique = technique)
                 return html_h5("The value of the surface integral is $(@eval ($value($q, $p, $ϕ, $ψ))).")
             catch e
                 return html_h5("Wrong input. Try again.")
@@ -155,7 +184,7 @@ callback!(app,
                 ψ = parse_function(y_max, :x)
                 ρ = parse_function(z_min, :x, :y)
                 η = parse_function(z_max, :x, :y)
-                value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d)
+                value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; ϵ = ϵ, technique = technique)
                 return html_h5("The value of the surface integral is $(@eval ($value($q, $ρ, $η, $ϕ, $ψ))).")
             catch e
                 return html_h5("Wrong input. Try again.")
@@ -168,6 +197,7 @@ callback!(app,
         Output("surface_plot", "figure"),
         Input("input", "value"),
         Input("dropdown", "value"),
+        Input("graph_accuracy", "value"),
         Input("u_range1i", "value"),
         Input("u_range2i", "value"),
         Input("v_range1i", "value"),
@@ -180,7 +210,7 @@ callback!(app,
         Input("z_range2i", "value"),
         Input("vector_field", "value"),
         Input("field_density", "value")
-        ) do return_value, dropdown_value, u_min, u_max, v_min, v_max,
+        ) do return_value, dropdown_value, N, u_min, u_max, v_min, v_max,
             x_min, x_max, y_min, y_max, z_min, z_max, field, density
 
             if dropdown_value == options_[1] # _______________parametric
@@ -190,11 +220,13 @@ callback!(app,
                         u_max = parse_num(u_max)
                         v_min = parse_function(v_min, :u)
                         v_max = parse_function(v_max, :u)
+                        N = parse_num(N)
                     catch e
                         u_min = -1
                         u_max = 1
-                        v_min = 0
-                        v_max = 2π
+                        v_min = parse_function("0", :u)
+                        v_max = parse_function("2pi", :u)
+                        N = 100
                     end
 
                     if false
@@ -203,7 +235,7 @@ callback!(app,
                                 y = [0],
                                 z = [[0], [0]]))
                     else
-                        N = 50  # interpolation parameter
+                        #N = 50  # interpolation parameter
 
                         xyz = F = Fx = Fy = Fz = "_"
                         X(u, v) = 0
@@ -271,6 +303,7 @@ callback!(app,
                     @eval (isa($Fx(-2), Number))
                     @eval (isa($Fy(-2), Number))
                     @eval (isa($Fz(-2), Number))
+                    N = parse_num(N)
                 catch e
                     x_min = -2
                     y_min = parse_function("-2", :x)
@@ -281,6 +314,7 @@ callback!(app,
                     Fx = parse_function("0", :x)
                     Fy = parse_function("0", :y)
                     Fz = parse_function("0", :z)
+                    N = 100
                 end
 
                 if false#(x_min > x_max) | (y_min > y_max) | (z_min > z_max)
@@ -289,7 +323,7 @@ callback!(app,
                             y = [0],
                             z = [[0], [0]]))
                 else
-                    N = 100  # interpolation parameter
+                    #N = 100  # interpolation parameter
 
                     f(x, y) = 0
 

@@ -252,9 +252,9 @@ callback!(app,
                             @eval (isa($X(-2, 3), Array{Float64, 1}))
                             @eval (isa($Y(-2, 3), Array{Float64, 1}))
                             @eval (isa($Z(-2, 3), Array{Float64, 1}))
-                            @eval (isa($Fx(-2), Number))
-                            @eval (isa($Fy(-2), Number))
-                            @eval (isa($Fz(-2), Number))
+                            @eval (isa($Fx(-2, -2, -2), Number))
+                            @eval (isa($Fy(-2, -2, -2), Number))
+                            @eval (isa($Fz(-2, -2, -2), Number))
                         catch e
                             X = parse_function("0", :u, :v)
                             Y = parse_function("0", :u, :v)
@@ -297,9 +297,9 @@ callback!(app,
                     Fx = parse_function(string(F[1]), :x, :y, :z)
                     Fy = parse_function(string(F[2]), :x, :y, :z)
                     Fz = parse_function(string(F[3]), :x, :y, :z)
-                    @eval (isa($Fx(-2), Number))
-                    @eval (isa($Fy(-2), Number))
-                    @eval (isa($Fz(-2), Number))
+                    @eval (isa($Fx(-2, -2, -2), Number))
+                    @eval (isa($Fy(-2, -2, -2), Number))
+                    @eval (isa($Fz(-2, -2, -2), Number))
                 catch e
                     x_min = -2
                     y_min = parse_function("-2", :x)

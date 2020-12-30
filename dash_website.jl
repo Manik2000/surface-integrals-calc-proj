@@ -91,7 +91,7 @@ app.layout = html_div() do
                                 min = 0,
                                 max = 20,
                                 marks = Dict([Symbol(v) => Symbol(v) for v in 0:2:20]),
-                                value = 10,
+                                value = 6,
                                 step = 2,
                                 )
                                 ], style = Dict("float" => "left", "width" => "65%", "display" => "inline-block")
@@ -107,17 +107,17 @@ app.layout = html_div() do
                             dcc_slider(
                                 id = "integral_accuracy",
                                 min = 1e-6,
-                                max = 0.1,
-                                marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.01:0.1]),
+                                max = 0.01,
+                                marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.001:0.01]),
                                 value = 1e-3,
                                 step = 1e-6,
                                 ),
                             dcc_slider(
                                 id = "graph_accuracy",
                                 min = 10,
-                                max = 1000,
+                                max = 300,
                                 marks = Dict([Symbol(v) => Symbol(v) for v in 10:100:1000]),
-                                value = 100,
+                                value = 50,
                                 step = 10,
                                 )
                         ]
@@ -245,9 +245,9 @@ callback!(app,
                             Y = parse_function(string(xyz[2]), :u, :v)
                             Z = parse_function(string(xyz[3]), :u, :v)
                             F = split((strip(field, ['[', ']'])), ",")
-                            Fx = parse_function(string(F[1]), :x)
-                            Fy = parse_function(string(F[2]), :y)
-                            Fz = parse_function(string(F[3]), :z)
+                            Fx = parse_function(string(F[1]), :x, :y, :z)
+                            Fy = parse_function(string(F[2]), :x, :y, :z)
+                            Fz = parse_function(string(F[3]), :x, :y, :z)
                             @eval ($X(-2, 3), $Y(-2, 3), $Z(-2, 3))
                             @eval (isa($X(-2, 3), Array{Float64, 1}))
                             @eval (isa($Y(-2, 3), Array{Float64, 1}))
@@ -259,9 +259,9 @@ callback!(app,
                             X = parse_function("0", :u, :v)
                             Y = parse_function("0", :u, :v)
                             Z = parse_function("0", :u, :v)
-                            Fx = parse_function("0", :x)
-                            Fy = parse_function("0", :y)
-                            Fz = parse_function("0", :z)
+                            Fx = parse_function("0", :x, :y, :z)
+                            Fy = parse_function("0", :x, :y, :z)
+                            Fz = parse_function("0", :x, :y, :z)
                         end
 
 
@@ -294,9 +294,9 @@ callback!(app,
                     z_min = parse_function(z_min, :x, :y)
                     z_max = parse_function(z_max, :x, :y)
                     F = split((strip(field, ['[', ']'])), ",")
-                    Fx = parse_function(string(F[1]), :x)
-                    Fy = parse_function(string(F[2]), :y)
-                    Fz = parse_function(string(F[3]), :z)
+                    Fx = parse_function(string(F[1]), :x, :y, :z)
+                    Fy = parse_function(string(F[2]), :x, :y, :z)
+                    Fz = parse_function(string(F[3]), :x, :y, :z)
                     @eval (isa($Fx(-2), Number))
                     @eval (isa($Fy(-2), Number))
                     @eval (isa($Fz(-2), Number))
@@ -307,9 +307,9 @@ callback!(app,
                     x_max = 2
                     y_max = parse_function("2", :x)
                     z_max = parse_function("2", :x, :y)
-                    Fx = parse_function("0", :x)
-                    Fy = parse_function("0", :y)
-                    Fz = parse_function("0", :z)
+                    Fx = parse_function("0", :x, :y, :z)
+                    Fy = parse_function("0", :x, :y, :z)
+                    Fz = parse_function("0", :x, :y, :z)
                 end
 
                 if false#(x_min > x_max) | (y_min > y_max) | (z_min > z_max)

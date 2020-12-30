@@ -13,7 +13,7 @@ app = dash(external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"],
             assets_folder="assets",
             external_scripts=[mathjax])
 
-options_ = ["parametric representation", "z = f(x, y)"]
+options_ = ["S: r(u, v)", "S: z = f(x, y), y = g(x)"]
 
 
 app.layout = html_div() do
@@ -21,33 +21,52 @@ app.layout = html_div() do
     html_h1("\$\$\\text{Surface integrals calculator}\$\$", style=Dict("textAlign" => "center", "margin" => "3%")),
     html_div(id="header",
         children=[
-            dcc_dropdown(
-                id = "dropdown",
-                options = [(label = i, value = i) for i in options_],
-                value = "parametric representation",
-                style = Dict("width" => "20vw", "display" => "inline-block")
-                ),
+        html_h3(id="header_h3", "\$\$ \\text{Hello, let the fun begin!}\$\$")
                 ]
             ),
+    html_hr(style=Dict("borderTop" => "1px dashed #d69c2f")),
+    html_div(id="surface", children=[
+        html_label(id="surface_label", "\$\$\\text{Choose the way of defining the surface:}\$\$"),
+        dcc_dropdown(
+            id = "dropdown",
+            options = [(label = i, value = i) for i in options_],
+            value = options_[1],
+            ),
+    ]),
     html_hr(style=Dict("borderTop" => "1px dashed #d69c2f")),
     html_div(id="main", children=[
         html_div(id="inputs", children=[
             html_label(id="vector_field_l", "\$\$\\text{Enter your vector field formula}\$\$"),
             html_div(id="field", children=[
-            html_label(id="mFx", "\$\$\\vec{F}\\hat{i}\$\$"),
+            html_label(id="mFx", "\$\$\\vec{F}\\cdot\\hat{i}\$\$"),
             dcc_input(id="Fx", type="text", value="x"),
-            html_label(id="mFy", "\$\$\\vec{F}\\hat{j}\$\$"),
+            html_label(id="mFy", "\$\$\\vec{F}\\cdot\\hat{j}\$\$"),
             dcc_input(id="Fy", type="text", value="y"),
-            html_label(id="mFz", "\$\$\\vec{F}\\hat{k}\$\$"),
-            dcc_input(id="Fz", type="text", value="z")
+            html_label(id="mFz", "\$\$\\vec{F}\\cdot\\hat{k}\$\$"),
+            dcc_input(id="Fz", type="text", value="z"),
             ]
         ),
-        html_div(id="parametric_bounds", children=[
-            html_label(id="r1lab", "\$\$\\vec{r}(u, v)\\hat{i} =\$\$"),
+        html_label(id="method_dropdown", "\$\$\\text{Choose method of numeric integration:}\$\$"),
+        dcc_dropdown(
+            id = "method",
+            options = [(label = i, value = i) for i in ("Simpson", "Monte Carlo")],
+            value = "Simpson"
+            ),
+        html_label(id="accurary", "\$\$\\text{Choose the accuracy of numeric integration:}\$\$"),
+        dcc_slider(
+            id = "integral_accuracy",
+            min = 1e-6,
+            max = 0.01,
+            marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.001:0.01]),
+            value = 1e-3,
+            step = 1e-6,
+            ),
+            html_div(id="parametric_bounds", children=[
+            html_label(id="r1lab", "\$\$\\vec{r}(u, v)\\cdot\\hat{i} =\$\$"),
             dcc_input(id="r1", type="text", value="sqrt(1/4 + u^2) * cos(v)"),
-            html_label(id="r2lab", "\$\$\\vec{r}(u, v)\\hat{j} =\$\$"),
+            html_label(id="r2lab", "\$\$\\vec{r}(u, v)\\cdot\\hat{j} =\$\$"),
             dcc_input(id="r2", type="text", value="sqrt(1/4 + u^2) * sin(v)"),
-            html_label(id="r3lab", "\$\$\\vec{r}(u, v)\\hat{k} =\$\$"),
+            html_label(id="r3lab", "\$\$\\vec{r}(u, v)\\cdot\\hat{k} =\$\$"),
             dcc_input(id="r3", type="text", value="u"),
             html_label(id="u_range1", "\$\$u_{min} =\$\$"),
             dcc_input(id="u_range1i", type="text", value="-1"),
@@ -93,46 +112,31 @@ app.layout = html_div() do
                             )
                 )
             ),
-            html_div(
-                children=[
-                    dcc_slider(
-                        id = "field_density",
-                        min = 0,
-                        max = 20,
-                        marks = Dict([Symbol(v) => Symbol(v) for v in 0:2:20]),
-                        value = 6,
-                        step = 2,
-                        )
-                        ]
-                        ),
-            html_div(
-                children=[
-                dcc_dropdown(
-                    id = "method",
-                    options = [(label = i, value = i) for i in ("Simpson", "Monte Carlo")],
-                    value = "Simpson"
-                    ),
-                    dcc_slider(
-                        id = "integral_accuracy",
-                        min = 1e-6,
-                        max = 0.01,
-                        marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.001:0.01]),
-                        value = 1e-3,
-                        step = 1e-6,
-                        ),
-                    dcc_slider(
-                        id = "graph_accuracy",
-                        min = 10,
-                        max = 300,
-                        marks = Dict([Symbol(v) => Symbol(v) for v in 10:100:1000]),
-                        value = 50,
-                        step = 10,
-                        )
-                ]
-            )
         ]
     ),
-])
+]),
+html_div(id="plot_attributes",
+    children=[
+        html_label(id="field_density_lab", "\$\$\\text{Choose the density of the vector field.}\$\$"),
+        dcc_slider(
+            id = "field_density",
+            min = 0,
+            max = 20,
+            marks = Dict([Symbol(v) => Symbol(v) for v in 0:2:20]),
+            value = 6,
+            step = 2,
+            ),
+            html_label(id="graph_accuracy_lab", "\$\$\\text{Choose the accuracy of plotting.}\$\$"),
+            dcc_slider(
+            id = "graph_accuracy",
+            min = 10,
+            max = 300,
+            marks = Dict([Symbol(v) => Symbol(v) for v in 10:100:1000]),
+            value = 50,
+            step = 10,
+            )
+    ]
+)
 ])
 end
 
@@ -141,7 +145,7 @@ callback!(app,
         Output("fxy_bounds", "style"),
         Input("dropdown", "value")
         ) do user_choice
-        if user_choice == "parametric representation"
+        if user_choice == options_[1]
             return Dict("display" => "grid"), Dict("display" => "none")
         else
             return Dict("display" => "none"), Dict("display" => "grid")
@@ -181,9 +185,9 @@ callback!(app,
                 ψ = parse_function(v_max, :u)
                 value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; ϵ = ϵ, technique = technique)
                 value_ = @eval abs(($value($q, $p, $ϕ, $ψ)))
-                return html_h5("|Φ| = $(value_).")  # this has to be changed
+                return html_h5("|Φ| = $(value_).", style=Dict("textAlign" => "center"))
             catch e
-                return html_h5("\$\$\\text{Wrong input. Try again.}\$\$")
+                return html_h5("\$\$\\text{Wrong input. Try again.}\$\$", style=Dict("textAlign" => "center"))
             end
         else
             try
@@ -195,9 +199,9 @@ callback!(app,
                 η = parse_function(z_max, :x, :y)
                 value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; ϵ = ϵ, technique = technique)
                 value_ = @eval abs(($value($q, $ρ, $η, $ϕ, $ψ)))
-                return html_h5("|Φ| = $(value_).") # this also should be changed
+                return html_h5("|Φ| = $(value_).", style=Dict("textAlign" => "center"))
             catch e
-                return html_h5("\$\$ \\text{Wrong input. Try again.} \$\$")
+                return html_h5("\$\$ \\text{Wrong input. Try again.} \$\$", style=Dict("textAlign" => "center"))
             end
         end
 end

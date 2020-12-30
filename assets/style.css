@@ -1,9 +1,45 @@
+@media only screen and (max-width: 4000px) {
 html {
   background-color: #FFFFFF;
+  margin: 2vh 2vw;
+}
+
+/* define the font for all dcc_inputs */
+
+#surface, #Fx, #Fy, #Fz, #r1, #r2, #r3, #u_range1i,
+#u_range2i, #v_range1i, #v_range2i, #x_range1i, #x_range2i,
+#y_range1i, #y_range2i, #z_range1i, #z_rang2i, #output_{
+  font-family:Georgia,"Times New Roman",Times,serif;
 }
 
 h1. {
   text-align: center;
+}
+
+#header {
+  display: grid;
+  grid-gap: 0px;
+}
+
+#header_h3 {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+#surface {
+  display: grid;
+  grid-gap: 1px;
+  font-size: 1em;
+}
+
+#surface_label {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+#dropdown {
+    grid-row: 1;
+    grid-column: 2;
 }
 
 #main {
@@ -12,47 +48,37 @@ h1. {
 }
 
 #inputs {
+  width: 45%;
   grid-column: 1;
-  width: 0.45%;
+  display: grid;
+  grid-gap: 0.5em;
 }
 
 #graphing {
   grid-column: 2;
   margin: 0;
-  display: grid;
-  grid-gap: 10px;
+  display: block;
 }
 
-#surface_plot {
+/* #surface_plot {
+  grid-column: 1;
+  grid-row: 1;
+} */
+
+#vector_field_l {
   grid-column: 1;
   grid-row: 1;
 }
 
-#field_density {
+#field {
   grid-column: 1;
   grid-row: 2;
-}
-
-#method {
-  grid-column: 1;
-  grid-row: 3;
-}
-
-#integral_accuracy {
-  grid-column: 1;
-  grid-row: 4;
-}
-
-#graph_accuracy {
-  grid-column: 1;
-  grid-row: 5;
-}
-
-#field {
   display: grid;
-  grid-gap: 8px;
-  margin: 2em;
+  grid-gap: 1em;
+  margin: 1.5em;
 }
+
+/* field */
 
 #mFx {
   grid-column: 1;
@@ -90,8 +116,31 @@ h1. {
   text-align: center;
 }
 
+#method_dropdown {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+#method {
+  grid-column: 1;
+  grid-row: 4;
+}
+
+#accuracy {
+  grid-column: 1;
+  grid-row: 5;
+}
+
+#integral_accuracy {
+  grid-column: 1;
+  grid-row: 6;
+}
+
+/* parametric_bounds */
 
 #parametric_bounds {
+  grid-row: 7;
+  grid-column: 1;
   grid-gap: 2px;
 }
 
@@ -165,8 +214,12 @@ h1. {
   grid-column: 4;
 }
 
+/* fxy_bounds */
+
 #fxy_bounds {
   grid-gap: 1pt;
+  grid-row: 7;
+  grid-column: 1;
 }
 
 #x_range1 {
@@ -236,4 +289,13 @@ h1. {
 #z_range2i {
   grid-column: 4;
   grid-row: 3;
+}
+
+#output_ {
+  font-size: 2.5em;
+}
+#plot_attributes {
+  display: block;
+}
+
 }

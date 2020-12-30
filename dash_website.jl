@@ -19,7 +19,7 @@ options_ = ["parametric representation", "z = f(x, y)"]
 app.layout = html_div() do
     html_div(style=Dict("textAlign" => "center", "paddingBottom" => "2em"),
     children=[
-        html_h1("Surface integrals calculator", style=Dict("textAlign" => "center", "margin" => "3%")),
+        html_h1("\$\$\\text{Surface integrals calculator}\$\$", style=Dict("textAlign" => "center", "margin" => "3%")),
             html_div(
                 children=[
                     dcc_dropdown(
@@ -39,32 +39,34 @@ app.layout = html_div() do
                     dcc_input(id="Fz", type="text", value="z")
                     ]),
                     html_div(id="parametric_bounds", children=[
-
+                        html_label(id="r1lab", "\$\$\\vec{r}(u, v)\\hat{i} =\$\$"),
                         dcc_input(id="r1", type="text", value="sqrt(1/4 + u^2) * cos(v)"),
+                        html_label(id="r2lab", "\$\$\\vec{r}(u, v)\\hat{j} =\$\$"),
                         dcc_input(id="r2", type="text", value="sqrt(1/4 + u^2) * sin(v)"),
+                        html_label(id="r3lab", "\$\$\\vec{r}(u, v)\\hat{k} =\$\$"),
                         dcc_input(id="r3", type="text", value="u"),
-                        html_label(id="u_range1", "Insert the lower bound for u \$\$y_{2323}\$\$"),
+                        html_label(id="u_range1", "\$\$u_{min} =\$\$"),
                         dcc_input(id="u_range1i", type="text", value="-1"),
-                        html_label(id="u_range2", "Insert the upper bound for u"),
+                        html_label(id="u_range2", "\$\$u_{max} =\$\$"),
                         dcc_input(id="u_range2i", type="text", value="1"),
-                        html_label(id="v_range1", "Insert the lower bound for v"),
+                        html_label(id="v_range1", "\$\$\\phi(u) =\$\$"),
                         dcc_input(id="v_range1i", type="text", value="0"),
-                        html_label(id="v_range2", "Insert the upper bound for v"),
+                        html_label(id="v_range2", "\$\$\\theta(u) =\$\$"),
                         dcc_input(id="v_range2i", type="text", value="2pi")
-                        ], style=Dict("display" => "block")
+                        ], style=Dict("display" => "grid")
                         ),
-                    html_div(id="f(x,y)_bounds", children=[
-                        html_label(id="x_range1", "Insert the lower bound for x"),
+                    html_div(id="fxy_bounds", children=[
+                        html_label(id="x_range1", "\$\$x_{\\text{min}} =\$\$"),
                         dcc_input(id="x_range1i", type="text", value="-2"),
-                        html_label(id="x_range2", "Insert the upper bound for x"),
+                        html_label(id="x_range2", "\$\$ x_{\\text{max}} =\$\$"),
                         dcc_input(id="x_range2i", type="text", value="3"),
-                        html_label(id="y_range1", "Insert the lower bound for y"),
+                        html_label(id="y_range1", "\$\$ \\zeta(x) =\$\$"),
                         dcc_input(id="y_range1i", type="text", value="-2"),
-                        html_label(id="y_range2", "Insert the upper bound for y"),
+                        html_label(id="y_range2", "\$\$ \\eta(x) =\$\$"),
                         dcc_input(id="y_range2i", type="text", value="2"),
-                        html_label(id="z_range1", "Insert the lower bound for z"),
+                        html_label(id="z_range1", "\$\$ f(x, y) =\$\$"),
                         dcc_input(id="z_range1i", type="text", value="-(x^2 + y^2)"),
-                        html_label(id="z_range2", "Insert the upper bound for z"),
+                        html_label(id="z_range2", "\$\$ g(x, y) =\$\$"),
                         dcc_input(id="z_range2i", type="text", value="x^2+y^2")
                     ], style=Dict("display" => "none")
                     ),
@@ -135,13 +137,13 @@ end
 
 callback!(app,
         Output("parametric_bounds", "style"),
-        Output("f(x,y)_bounds", "style"),
+        Output("fxy_bounds", "style"),
         Input("dropdown", "value")
         ) do user_choice
         if user_choice == "parametric representation"
-            return Dict("display" => "block"), Dict("display" => "none")
+            return Dict("display" => "grid"), Dict("display" => "none")
         else
-            return Dict("display" => "none"), Dict("display" => "block")
+            return Dict("display" => "none"), Dict("display" => "grid")
         end
 end
 
@@ -178,9 +180,9 @@ callback!(app,
                 ψ = parse_function(v_max, :u)
                 value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; ϵ = ϵ, technique = technique)
                 value_ = @eval abs(($value($q, $p, $ϕ, $ψ)))
-                return dcc_markdown("|&#x03A6;| = $(value_).")
+                return html_h5("\$\$\\left|\\Phi\\right| = $(value_).\$\$")
             catch e
-                return html_h5("Wrong input. Try again.")
+                return html_h5("\$\$\\text{Wrong input. Try again.}\$\$")
             end
         else
             try
@@ -192,9 +194,9 @@ callback!(app,
                 η = parse_function(z_max, :x, :y)
                 value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; ϵ = ϵ, technique = technique)
                 value_ = @eval abs(($value($q, $ρ, $η, $ϕ, $ψ)))
-                return dcc_markdown("|&#x03A6;| =  $(value_)")
+                return html_h5("\$\$ \\left|\\Phi\\right| = $(value_). \$\$")
             catch e
-                return html_h5("Wrong input. Try again.")
+                return html_h5("\$\$ \\text{Wrong input. Try again.} \$\$")
             end
         end
 end

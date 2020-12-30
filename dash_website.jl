@@ -9,12 +9,7 @@ using .GraphingUtils
 
 app = dash(external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"],
             assets_folder="assets")
-markdown_text = """
-                We are **extremaly** happy that you've visited our website.
-                Below we've prepared a calulator of surface integrals.
-                1. Firstly choose a way for describing the surface,
-                2. Then insert the data for bla bla bla
-                """
+
 options_ = ["parametric representation", "z = f(x, y)"]
 
 
@@ -22,7 +17,6 @@ app.layout = html_div() do
     html_div(style=Dict("textAlign" => "center", "paddingBottom" => "2em"),
     children=[
         html_h1("Surface integrals calculator", style=Dict("textAlign" => "center", "margin" => "3%")),
-        dcc_markdown(markdown_text, style=Dict("margin" => "2%")),
             html_div(
                 children=[
                     dcc_dropdown(
@@ -33,12 +27,13 @@ app.layout = html_div() do
                         ),
                     html_hr(),
                     html_label(id="vector_field_l", "Enter your vector field formula"),
-                    dcc_input(id="vector_field", type="text", style=Dict("width" => "20vw", "textAlign" => "center"),
-                                value="[x, y, z]"),
-                    html_label(id="representation", "Enter your surface parametrization"),
-                    dcc_input(id="input", type="text", style=Dict("width" => "20vw", "textAlign" => "center"),
-                                value="[sqrt(1/4 + u^2) * cos(v), sqrt(1/4 + u^2) * sin(v),  u]"),
+                    dcc_input(id="Fx", type="text", value="x"),
+                    dcc_input(id="Fy", type="text", value="y"),
+                    dcc_input(id="Fz", type="text", value="z"),
                     html_div(id="parametric_bounds", children=[
+                        dcc_input(id="r1", type="text", value="sqrt(1/4 + u^2) * cos(v)"),
+                        dcc_input(id="r2", type="text", value="sqrt(1/4 + u^2) * sin(v)"),
+                        dcc_input(id="r3", type="text", value="u"),
                         html_label(id="u_range1", "Insert the lower bound for u"),
                         dcc_input(id="u_range1i", type="text", value="-1"),
                         html_label(id="u_range2", "Insert the upper bound for u"),
@@ -53,15 +48,15 @@ app.layout = html_div() do
                         html_label(id="x_range1", "Insert the lower bound for x"),
                         dcc_input(id="x_range1i", type="text", value="-2"),
                         html_label(id="x_range2", "Insert the upper bound for x"),
-                        dcc_input(id="x_range2i", type="text", value="2"),
+                        dcc_input(id="x_range2i", type="text", value="3"),
                         html_label(id="y_range1", "Insert the lower bound for y"),
                         dcc_input(id="y_range1i", type="text", value="-2"),
                         html_label(id="y_range2", "Insert the upper bound for y"),
                         dcc_input(id="y_range2i", type="text", value="2"),
                         html_label(id="z_range1", "Insert the lower bound for z"),
-                        dcc_input(id="z_range1i", type="text", value="0"),
+                        dcc_input(id="z_range1i", type="text", value="-(x^2 + y^2)"),
                         html_label(id="z_range2", "Insert the upper bound for z"),
-                        dcc_input(id="z_range2i", type="text", value="2")
+                        dcc_input(id="z_range2i", type="text", value="x^2+y^2")
                     ], style=Dict("display" => "none")
                     ),
                     html_div(id="output_")
@@ -122,7 +117,7 @@ app.layout = html_div() do
                                 )
                         ]
                     )
-                ], style = Dict("display" => "inline-block")
+                ], style=Dict("display" => "inline-block")
             ),
         ]
     )
@@ -145,8 +140,12 @@ end
 callback!(app,
         Output("output_", "children"),
         Input("dropdown", "value"),
-        Input("input", "value"),
-        Input("vector_field", "value"),
+        Input("r1", "value"),
+        Input("r2", "value"),
+        Input("r3", "value"),
+        Input("Fx", "value"),
+        Input("Fy", "value"),
+        Input("Fz", "value"),
         Input("method", "value"),
         Input("integral_accuracy", "value"),
         Input("u_range1i", "value"),
@@ -159,13 +158,13 @@ callback!(app,
         Input("y_range2i", "value"),
         Input("z_range1i", "value"),
         Input("z_range2i", "value")
-        ) do dropdown_value, return_value, vector_field, technique, ϵ, u_min, u_max,
+        ) do dropdown_value, r1, r2, r3, Fx, Fy, Fz, technique, ϵ, u_min, u_max,
             v_min, v_max, x_min, x_max, y_min, y_max, z_min, z_max
         if dropdown_value == options_[1]
             try
                 u_min, u_max = parse_num.([u_min, u_max])
-                p = parse_function(return_value, :u, :v)
-                q = parse_function(vector_field, :x, :y, :z)
+                p = parse_function(join(["[" * r1, r2, r3 *"]" ], ", "), :u, :v)
+                q = parse_function(join(["[" * Fx, Fy, Fz * "]"], ", "), :x, :y, :z)
                 ϕ = parse_function(v_min, :u)
                 ψ = parse_function(v_max, :u)
                 value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; ϵ = ϵ, technique = technique)
@@ -174,11 +173,9 @@ callback!(app,
                 return html_h5("Wrong input. Try again.")
             end
         else
-            # something must be changed here
             try
                 x_min, x_max = parse_num.([x_min, x_max])
-                p = parse_function(return_value, :x, :y, :z)
-                q = parse_function(vector_field, :x, :y, :z)
+                q = parse_function(join(["[" * Fx, Fy, Fz * "]"], ", "), :x, :y, :z)
                 ϕ = parse_function(y_min, :x)
                 ψ = parse_function(y_max, :x)
                 ρ = parse_function(z_min, :x, :y)
@@ -194,7 +191,9 @@ end
 
 callback!(app,
         Output("surface_plot", "figure"),
-        Input("input", "value"),
+        Input("r1", "value"),
+        Input("r2", "value"),
+        Input("r3", "value"),
         Input("dropdown", "value"),
         Input("graph_accuracy", "value"),
         Input("u_range1i", "value"),
@@ -207,10 +206,12 @@ callback!(app,
         Input("y_range2i", "value"),
         Input("z_range1i", "value"),
         Input("z_range2i", "value"),
-        Input("vector_field", "value"),
+        Input("Fx", "value"),
+        Input("Fy", "value"),
+        Input("Fz","value"),
         Input("field_density", "value")
-        ) do return_value, dropdown_value, N, u_min, u_max, v_min, v_max,
-            x_min, x_max, y_min, y_max, z_min, z_max, field, density
+        ) do r1, r2, r3, dropdown_value, N, u_min, u_max, v_min, v_max,
+            x_min, x_max, y_min, y_max, z_min, z_max, F1, F2, F3, density
 
             if dropdown_value == options_[1] # _______________parametric
 
@@ -232,22 +233,18 @@ callback!(app,
                                 y = [0],
                                 z = [[0], [0]]))
                     else
-                        #N = 50  # interpolation parameter
-
-                        xyz = F = Fx = Fy = Fz = "_"
+                        Fx = Fy = Fz = "_"
                         X(u, v) = 0
                         Y(u, v) = 0
                         Z(u, v) = 0
 
                         try
-                            xyz = split((strip(return_value, ['[', ']'])), ",")
-                            X = parse_function(string(xyz[1]), :u, :v)
-                            Y = parse_function(string(xyz[2]), :u, :v)
-                            Z = parse_function(string(xyz[3]), :u, :v)
-                            F = split((strip(field, ['[', ']'])), ",")
-                            Fx = parse_function(string(F[1]), :x, :y, :z)
-                            Fy = parse_function(string(F[2]), :x, :y, :z)
-                            Fz = parse_function(string(F[3]), :x, :y, :z)
+                            X = parse_function(r1, :u, :v)
+                            Y = parse_function(r2, :u, :v)
+                            Z = parse_function(r3, :u, :v)
+                            Fx = parse_function(F1, :x, :y, :z)
+                            Fy = parse_function(F2, :x, :y, :z)
+                            Fz = parse_function(F3, :x, :y, :z)
                             @eval ($X(-2, 3), $Y(-2, 3), $Z(-2, 3))
                             @eval (isa($X(-2, 3), Array{Float64, 1}))
                             @eval (isa($Y(-2, 3), Array{Float64, 1}))
@@ -284,7 +281,7 @@ callback!(app,
                     end
             else  # ______________________________________________f(x,y)
 
-                F = Fx = Fy = Fz = "_"
+                Fx = Fy = Fz = "_"
 
                 try
                     x_min = parse_num(x_min)
@@ -293,10 +290,9 @@ callback!(app,
                     y_max = parse_function(y_max, :x)
                     z_min = parse_function(z_min, :x, :y)
                     z_max = parse_function(z_max, :x, :y)
-                    F = split((strip(field, ['[', ']'])), ",")
-                    Fx = parse_function(string(F[1]), :x, :y, :z)
-                    Fy = parse_function(string(F[2]), :x, :y, :z)
-                    Fz = parse_function(string(F[3]), :x, :y, :z)
+                    Fx = parse_function(F1, :x, :y, :z)
+                    Fy = parse_function(F2, :x, :y, :z)
+                    Fz = parse_function(F3, :x, :y, :z)
                     @eval (isa($Fx(-2, -2, -2), Number))
                     @eval (isa($Fy(-2, -2, -2), Number))
                     @eval (isa($Fz(-2, -2, -2), Number))
@@ -312,31 +308,18 @@ callback!(app,
                     Fz = parse_function("0", :x, :y, :z)
                 end
 
-                if false#(x_min > x_max) | (y_min > y_max) | (z_min > z_max)
+                if false  #(x_min > x_max) | (y_min > y_max) | (z_min > z_max)
                     return Plot(surface(;
                             x = [0],
                             y = [0],
                             z = [[0], [0]]))
                 else
-                    #N = 100  # interpolation parameter
-
-                    f(x, y) = 0
-
-                    try
-                        f = parse_function(return_value, :x, :y)
-                        @eval ($f(-2, 3))
-                        @eval (isa($f(-2, 3), Array{Float64, 1}))
-
-                    catch e
-                        f = parse_function("0", :x, :y)
-                    end
-
                     xs = LinRange(x_min, x_max, N)
                     value2_(g::Function, x::LinRange{Float64}) = g.(x)
                     value2_(g::Function, x::Number) = g(x)
                     ys = @eval (LinRange(minimum($value2_($y_min, $xs)), maximum($value2_($y_max, $xs)), $N))
 
-                    check2(x::Number, y::Number, f::Function)::Float64 = @eval($value2_($y_min, $x) <= $y && $value2_($y_max, $x) >= $y ? $f($x, $y) : NaN)
+                    check2(x::Number, y::Number, h::Function)::Float64 = @eval($value2_($y_min, $x) <= $y && $value2_($y_max, $x) >= $y ? $h($x, $y) : NaN)
 
                     value2(g) = check2.(xs', ys, g)
 

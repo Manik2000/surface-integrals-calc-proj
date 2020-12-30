@@ -136,7 +136,7 @@ html_div(id="plot_attributes",
             step = 10,
             )
     ]
-)
+), html_footer("\$\$\\text{MIT License}. \\ \\text{MM, ML, MK.}\$\$", style=Dict("marginTop" => "3em", "textAlign" => "center"))
 ])
 end
 

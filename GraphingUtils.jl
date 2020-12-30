@@ -18,13 +18,14 @@ function graph_all(x, y, z, Fx::Function, Fy::Function, Fz::Function,
     𝓏 = repeat(z_span, inner=density^3)
 
     trace₁ = surface(;x=x, y=y, z=z)
-    trace₀ = surface(;x=x, y=y, z=z)
-    if !all(isnan.(z₀))
-        trace₀ = surface(;x=x, y=y, z=z₀)
-    end
     trace₂ = cone(;x=𝓍, y=𝓎, z=𝓏, u=Fx.(𝓍, 𝓎, 𝓏), v=Fy.(𝓍, 𝓎, 𝓏), w=Fz.(𝓍, 𝓎, 𝓏), showscale=false)
     layout = Layout(autosize=false, width=600, height=600)
-    return Plot([trace₀, trace₁, trace₂], layout)
+    if !all(isnan.(z₀))
+        trace₀ = surface(;x=x, y=y, z=z₀)
+        return Plot([trace₀, trace₁, trace₂], layout)
+    else
+        return Plot([trace₁, trace₂], layout)
+    end
 end
 
 # check(u, v, f) = v_min(u) <= v && v_max(u) >= v ? f(u, v) : NaN

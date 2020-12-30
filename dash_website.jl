@@ -86,7 +86,7 @@ app.layout = html_div() do
                                 min = 0,
                                 max = 20,
                                 marks = Dict([Symbol(v) => Symbol(v) for v in 0:2:20]),
-                                value = 10,
+                                value = 6,
                                 step = 2,
                                 )
                                 ], style = Dict("float" => "left", "width" => "65%", "display" => "inline-block")
@@ -102,17 +102,17 @@ app.layout = html_div() do
                             dcc_slider(
                                 id = "integral_accuracy",
                                 min = 1e-6,
-                                max = 0.1,
-                                marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.01:0.1]),
+                                max = 0.01,
+                                marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.001:0.01]),
                                 value = 1e-3,
                                 step = 1e-6,
                                 ),
                             dcc_slider(
                                 id = "graph_accuracy",
                                 min = 10,
-                                max = 1000,
+                                max = 300,
                                 marks = Dict([Symbol(v) => Symbol(v) for v in 10:100:1000]),
-                                value = 100,
+                                value = 50,
                                 step = 10,
                                 )
                         ]

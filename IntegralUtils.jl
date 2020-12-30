@@ -578,7 +578,7 @@ julia> Φ((x, y, z) -> [-y, x, 0], (-1, 1), (x, y) -> 0, (x, y) -> sqrt(2-y^2-x^
 ```
 """
 function Φ(F::Function, X::Tuple{Number, Number}, ρ::Function, η::Function, ϕ::Function, ψ::Function;
-     ϵ::Number = 1e-2, technique::String = "Simpson")::Union{Int, Float64}
+     ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
     if technique in ("Simpson", "Monte Carlo")
         surface_integral(n) = technique == "Simpson" ? ∯(F, X, ρ, η, ϕ, ψ, 2n, 2n, 2n) : ∯(F, X, ρ, η, ϕ, ψ, 100n, 4.0n)
     else
@@ -611,7 +611,7 @@ julia> Φ((x, y, z) -> [x-y, y-z, z-x], (u, v) -> [(cos(u)+2)cos(v), (cos(u)+2)s
 ```
 """
 function Φ(F::Function, r::Function, U::Tuple{Number, Number}, ϕ::Function, ψ::Function;
-     ϵ::Number = 1e-2, technique::String = "Simpson")::Union{Int, Float64}
+     ϵ::Number = 1e-3, technique::String = "Simpson")::Union{Int, Float64}
     if technique in ("Simpson", "Monte Carlo")
         surface_integral(n::Int) = technique == "Simpson" ? ∯(F, r, U, ϕ, ψ, 2n, 2n) : ∯(F, r, U, ϕ, ψ, 100n, 4.0n)
     else

@@ -249,9 +249,9 @@ callback!(app,
                         z1 = @eval ($value($Z))
 
                         return @eval($graph_all($x1, $y1, $z1, $Fx, $Fy, $Fz,
-                                -1, 1,
-                                -1, 1,
-                                -1, 1, $density))
+                                minimum(filter(!isnan, $x1)), maximum(filter(!isnan, $x1)),
+                                minimum(filter(!isnan, $y1)), maximum(filter(!isnan, $y1)),
+                                minimum(filter(!isnan, $z1)), maximum(filter(!isnan, $z1)), $density))
                     end
             else  # ______________________________________________f(x,y)
 
@@ -260,10 +260,10 @@ callback!(app,
                 try
                     x_min = parse_num(x_min)
                     x_max = parse_num(x_max)
-                    y_min = parse_num(y_min)
-                    y_max = parse_num(y_max)
-                    z_min = parse_num(z_min)
-                    z_max = parse_num(z_max)
+                    y_min = parse_function(y_min, :x)
+                    y_max = parse_function(y_max, :x)
+                    z_min = parse_function(z_min, :x, :y)
+                    z_max = parse_function(z_max, :x, :y)
                     F = split((strip(field, ['[', ']'])), ",")
                     Fx = parse_function(string(F[1]), :x)
                     Fy = parse_function(string(F[2]), :y)
@@ -272,14 +272,18 @@ callback!(app,
                     @eval (isa($Fy(-2), Number))
                     @eval (isa($Fz(-2), Number))
                 catch e
-                    x_min = y_min = z_min = -2
-                    x_max = y_max = z_max = 2
+                    x_min = -2
+                    y_min = parse_function("-2", :x)
+                    z_min = parse_function("-2", :x, :y)
+                    x_max = 2
+                    y_max = parse_function("2", :x)
+                    z_max = parse_function("2", :x, :y)
                     Fx = parse_function("0", :x)
                     Fy = parse_function("0", :y)
                     Fz = parse_function("0", :z)
                 end
 
-                if (x_min > x_max) | (y_min > y_max) | (z_min > z_max)
+                if false#(x_min > x_max) | (y_min > y_max) | (z_min > z_max)
                     return Plot(surface(;
                             x = [0],
                             y = [0],
@@ -298,15 +302,25 @@ callback!(app,
                         f = parse_function("0", :x, :y)
                     end
 
-                    xs = range(x_min, x_max, length=N)
-                    ys = range(y_min, y_max, length=N)
-                    value2(g) = g.(xs', ys)
-                    z1 = @eval ($value2($f))
+                    xs = LinRange(x_min, x_max, N)
+                    value2_(g::Function, x::LinRange{Float64}) = g.(x)
+                    value2_(g::Function, x::Number) = g(x)
+                    ys = @eval (LinRange(minimum($value2_($y_min, $xs)), maximum($value2_($y_max, $xs)), $N))
 
-                    return @eval($graph_all($xs, $ys, $z1, $Fx, $Fy, $Fz,
-                            $x_min, $x_max,
-                            $y_min, $y_max,
-                            minimum($z1), maximum($z1), $density))
+                    check2(x::Number, y::Number, f::Function)::Float64 = @eval($value2_($y_min, $x) <= $y && $value2_($y_max, $x) >= $y ? $f($x, $y) : NaN)
+
+                    value2(g) = check2.(xs', ys, g)
+
+                    zs = @eval($value2($z_max))
+                    z₀ = @eval($value2($z_min))
+                    temp = deepcopy(zs)
+                    zs[zs .< z₀] .= NaN
+                    z₀[z₀ .> temp] .= NaN
+
+                    return @eval($graph_all($xs, $ys, $zs, $Fx, $Fy, $Fz,
+                            minimum($xs), maximum($xs),
+                            minimum(filter(!isnan, $ys)), maximum(filter(!isnan, $ys)),
+                            minimum(filter(!isnan, $z₀)), maximum(filter(!isnan, $zs)), $density, $z₀))
                 end
             end
         end

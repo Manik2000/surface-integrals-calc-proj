@@ -17,123 +17,125 @@ options_ = ["parametric representation", "z = f(x, y)"]
 
 
 app.layout = html_div() do
-    html_div(style=Dict("textAlign" => "center", "paddingBottom" => "2em"),
-    children=[
-        html_h1("\$\$\\text{Surface integrals calculator}\$\$", style=Dict("textAlign" => "center", "margin" => "3%")),
-            html_div(
-                children=[
-                    dcc_dropdown(
-                        id = "dropdown",
-                        options = [(label = i, value = i) for i in options_],
-                        value = "parametric representation",
-                        style = Dict("width" => "20vw", "display" => "inline-block")
-                        ),
-                    html_hr(),
-                    html_label(id="vector_field_l", "\$\$\\text{Enter your vector field formula}\$\$"),
-                    html_div(id="field", children=[
-                    html_label(id="mFx", "\$\$\\vec{F}\\hat{i}\$\$"),
-                    dcc_input(id="Fx", type="text", value="x"),
-                    html_label(id="mFy", "\$\$\\vec{F}\\hat{j}\$\$"),
-                    dcc_input(id="Fy", type="text", value="y"),
-                    html_label(id="mFz", "\$\$\\vec{F}\\hat{k}\$\$"),
-                    dcc_input(id="Fz", type="text", value="z")
-                    ]),
-                    html_div(id="parametric_bounds", children=[
-                        html_label(id="r1lab", "\$\$\\vec{r}(u, v)\\hat{i} =\$\$"),
-                        dcc_input(id="r1", type="text", value="sqrt(1/4 + u^2) * cos(v)"),
-                        html_label(id="r2lab", "\$\$\\vec{r}(u, v)\\hat{j} =\$\$"),
-                        dcc_input(id="r2", type="text", value="sqrt(1/4 + u^2) * sin(v)"),
-                        html_label(id="r3lab", "\$\$\\vec{r}(u, v)\\hat{k} =\$\$"),
-                        dcc_input(id="r3", type="text", value="u"),
-                        html_label(id="u_range1", "\$\$u_{min} =\$\$"),
-                        dcc_input(id="u_range1i", type="text", value="-1"),
-                        html_label(id="u_range2", "\$\$u_{max} =\$\$"),
-                        dcc_input(id="u_range2i", type="text", value="1"),
-                        html_label(id="v_range1", "\$\$\\phi(u) =\$\$"),
-                        dcc_input(id="v_range1i", type="text", value="0"),
-                        html_label(id="v_range2", "\$\$\\theta(u) =\$\$"),
-                        dcc_input(id="v_range2i", type="text", value="2pi")
-                        ], style=Dict("display" => "grid")
-                        ),
-                    html_div(id="fxy_bounds", children=[
-                        html_label(id="x_range1", "\$\$x_{\\text{min}} =\$\$"),
-                        dcc_input(id="x_range1i", type="text", value="-2"),
-                        html_label(id="x_range2", "\$\$ x_{\\text{max}} =\$\$"),
-                        dcc_input(id="x_range2i", type="text", value="3"),
-                        html_label(id="y_range1", "\$\$ \\zeta(x) =\$\$"),
-                        dcc_input(id="y_range1i", type="text", value="-2"),
-                        html_label(id="y_range2", "\$\$ \\eta(x) =\$\$"),
-                        dcc_input(id="y_range2i", type="text", value="2"),
-                        html_label(id="z_range1", "\$\$ f(x, y) =\$\$"),
-                        dcc_input(id="z_range1i", type="text", value="-(x^2 + y^2)"),
-                        html_label(id="z_range2", "\$\$ g(x, y) =\$\$"),
-                        dcc_input(id="z_range2i", type="text", value="x^2+y^2")
-                    ], style=Dict("display" => "none")
-                    ),
-                    html_div(id="output_")
-                    ], style = (width = "48%", display = "inline-block", float = "left")),
-            html_div(
-                children=[
-                    dcc_graph(
-                        id = "surface_plot",
-                        figure = (
-                            data = [
-                                (x = [0],
-                                 y = [0],
-                                 z = [[0], [0]],
-                                type = "surface")
-                            ],
-                            layout = (
-                                        autosize=false,
-                                        width=600,
-                                        height=600
-                                    )
-                        ), style = Dict("width" => "48vw", "height" => "70vh")
-                    ),
-                    html_div(
-                        children=[
-                            dcc_slider(
-                                id = "field_density",
-                                min = 0,
-                                max = 20,
-                                marks = Dict([Symbol(v) => Symbol(v) for v in 0:2:20]),
-                                value = 6,
-                                step = 2,
-                                )
-                                ], style = Dict("float" => "left", "width" => "65%", "display" => "inline-block")
-                                ),
-                    html_div(
-                        children=[
-                        dcc_dropdown(
-                            id = "method",
-                            options = [(label = i, value = i) for i in ("Simpson", "Monte Carlo")],
-                            value = "Simpson",
-                            style = Dict("width" => "20vw", "display" => "inline-block")
-                            ),
-                            dcc_slider(
-                                id = "integral_accuracy",
-                                min = 1e-6,
-                                max = 0.01,
-                                marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.001:0.01]),
-                                value = 1e-3,
-                                step = 1e-6,
-                                ),
-                            dcc_slider(
-                                id = "graph_accuracy",
-                                min = 10,
-                                max = 300,
-                                marks = Dict([Symbol(v) => Symbol(v) for v in 10:100:1000]),
-                                value = 50,
-                                step = 10,
-                                )
-                        ]
-                    )
-                ], style=Dict("display" => "inline-block")
+    html_div(children = [
+    html_h1("\$\$\\text{Surface integrals calculator}\$\$", style=Dict("textAlign" => "center", "margin" => "3%")),
+    html_div(
+        children=[
+            dcc_dropdown(
+                id = "dropdown",
+                options = [(label = i, value = i) for i in options_],
+                value = "parametric representation",
+                style = Dict("width" => "20vw", "display" => "inline-block")
+                ),
+                ]
             ),
-        ]
-    )
+    html_hr(),
+    html_div(id="main", children=[
+        html_div(id="inputs", children=[
+            html_label(id="vector_field_l", "\$\$\\text{Enter your vector field formula}\$\$"),
+            html_div(id="field", children=[
+            html_label(id="mFx", "\$\$\\vec{F}\\hat{i}\$\$"),
+            dcc_input(id="Fx", type="text", value="x"),
+            html_label(id="mFy", "\$\$\\vec{F}\\hat{j}\$\$"),
+            dcc_input(id="Fy", type="text", value="y"),
+            html_label(id="mFz", "\$\$\\vec{F}\\hat{k}\$\$"),
+            dcc_input(id="Fz", type="text", value="z")
+            ]
+        ),
+        html_div(id="parametric_bounds", children=[
+            html_label(id="r1lab", "\$\$\\vec{r}(u, v)\\hat{i} =\$\$"),
+            dcc_input(id="r1", type="text", value="sqrt(1/4 + u^2) * cos(v)"),
+            html_label(id="r2lab", "\$\$\\vec{r}(u, v)\\hat{j} =\$\$"),
+            dcc_input(id="r2", type="text", value="sqrt(1/4 + u^2) * sin(v)"),
+            html_label(id="r3lab", "\$\$\\vec{r}(u, v)\\hat{k} =\$\$"),
+            dcc_input(id="r3", type="text", value="u"),
+            html_label(id="u_range1", "\$\$u_{min} =\$\$"),
+            dcc_input(id="u_range1i", type="text", value="-1"),
+            html_label(id="u_range2", "\$\$u_{max} =\$\$"),
+            dcc_input(id="u_range2i", type="text", value="1"),
+            html_label(id="v_range1", "\$\$\\phi(u) =\$\$"),
+            dcc_input(id="v_range1i", type="text", value="0"),
+            html_label(id="v_range2", "\$\$\\theta(u) =\$\$"),
+            dcc_input(id="v_range2i", type="text", value="2pi")
+            ], style=Dict("display" => "grid")
+            ),
+        html_div(id="fxy_bounds", children=[
+            html_label(id="x_range1", "\$\$x_{\\text{min}} =\$\$"),
+            dcc_input(id="x_range1i", type="text", value="-2"),
+            html_label(id="x_range2", "\$\$ x_{\\text{max}} =\$\$"),
+            dcc_input(id="x_range2i", type="text", value="3"),
+            html_label(id="y_range1", "\$\$ \\zeta(x) =\$\$"),
+            dcc_input(id="y_range1i", type="text", value="-2"),
+            html_label(id="y_range2", "\$\$ \\eta(x) =\$\$"),
+            dcc_input(id="y_range2i", type="text", value="2"),
+            html_label(id="z_range1", "\$\$ f(x, y) =\$\$"),
+            dcc_input(id="z_range1i", type="text", value="-(x^2 + y^2)"),
+            html_label(id="z_range2", "\$\$ g(x, y) =\$\$"),
+            dcc_input(id="z_range2i", type="text", value="x^2+y^2")
+        ], style=Dict("display" => "none")
+            ),
+        html_div(id="output_")
+        ], style=style = (width = "48%", display = "inline-block", float = "left")),
+    html_div(id="graphing", children=[
+            dcc_graph(
+                id = "surface_plot",
+                figure = (
+                    data = [
+                        (x = [0],
+                         y = [0],
+                         z = [[0], [0]],
+                        type = "surface")
+                    ],
+                    layout = (
+                                autosize=false,
+                                width=600,
+                                height=600
+                            )
+                ), style = Dict("width" => "48vw", "height" => "70vh")
+            ),
+            html_div(
+                children=[
+                    dcc_slider(
+                        id = "field_density",
+                        min = 0,
+                        max = 20,
+                        marks = Dict([Symbol(v) => Symbol(v) for v in 0:2:20]),
+                        value = 6,
+                        step = 2,
+                        )
+                        ], style = Dict("float" => "left", "width" => "65%", "display" => "inline-block")
+                        ),
+            html_div(
+                children=[
+                dcc_dropdown(
+                    id = "method",
+                    options = [(label = i, value = i) for i in ("Simpson", "Monte Carlo")],
+                    value = "Simpson",
+                    style = Dict("width" => "20vw", "display" => "inline-block")
+                    ),
+                    dcc_slider(
+                        id = "integral_accuracy",
+                        min = 1e-6,
+                        max = 0.01,
+                        marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.001:0.01]),
+                        value = 1e-3,
+                        step = 1e-6,
+                        ),
+                    dcc_slider(
+                        id = "graph_accuracy",
+                        min = 10,
+                        max = 300,
+                        marks = Dict([Symbol(v) => Symbol(v) for v in 10:100:1000]),
+                        value = 50,
+                        step = 10,
+                        )
+                ]
+            )
+        ], style=Dict("display" => "inline-block")
+    ),
+])
+])
 end
-
 
 callback!(app,
         Output("parametric_bounds", "style"),
@@ -180,7 +182,7 @@ callback!(app,
                 ψ = parse_function(v_max, :u)
                 value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; ϵ = ϵ, technique = technique)
                 value_ = @eval abs(($value($q, $p, $ϕ, $ψ)))
-                return html_h5("\$\$\\left|\\Phi\\right| = $(value_).\$\$")
+                return html_h5("\$\$\\left|\\Phi\\right| = $(value_).\$\$")  # this has to be changed
             catch e
                 return html_h5("\$\$\\text{Wrong input. Try again.}\$\$")
             end
@@ -194,7 +196,7 @@ callback!(app,
                 η = parse_function(z_max, :x, :y)
                 value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; ϵ = ϵ, technique = technique)
                 value_ = @eval abs(($value($q, $ρ, $η, $ϕ, $ψ)))
-                return html_h5("\$\$ \\left|\\Phi\\right| = $(value_). \$\$")
+                return html_h5("\$\$ \\left|\\Phi\\right| = $(value_). \$\$") # this also should be changed
             catch e
                 return html_h5("\$\$ \\text{Wrong input. Try again.} \$\$")
             end

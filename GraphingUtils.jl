@@ -22,7 +22,7 @@ function graph_all(x, y, z, Fx::Function, Fy::Function, Fz::Function,
     if !all(isnan.(z₀))
         trace₀ = surface(;x=x, y=y, z=z₀)
     end
-    trace₂ = cone(;x=𝓍, y=𝓎, z=𝓏, u=Fx.(𝓍), v=Fy.(𝓎), w=Fz.(𝓏), showscale=false)
+    trace₂ = cone(;x=𝓍, y=𝓎, z=𝓏, u=Fx.(𝓍, 𝓎, 𝓏), v=Fy.(𝓍, 𝓎, 𝓏), w=Fz.(𝓍, 𝓎, 𝓏), showscale=false)
     layout = Layout(autosize=false, width=600, height=600)
     return Plot([trace₀, trace₁, trace₂], layout)
 end

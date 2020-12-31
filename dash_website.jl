@@ -106,19 +106,19 @@ app.layout = html_div() do
                             ),
                             dcc_slider(
                                 id = "integral_accuracy",
-                                min = 1e-6,
-                                max = 0.01,
-                                marks = Dict([Symbol(v) => Symbol(v) for v in 1e-6:0.001:0.01]),
-                                value = 1e-3,
-                                step = 1e-6,
+                                min = 10,
+                                max = 100,
+                                marks = Dict([Symbol(v) => Symbol(v) for v in 10:10:100]),
+                                value = 10,
+                                step = 10,
                                 ),
                             dcc_slider(
                                 id = "graph_accuracy",
-                                min = 10,
+                                min = 50,
                                 max = 300,
-                                marks = Dict([Symbol(v) => Symbol(v) for v in 10:100:1000]),
+                                marks = Dict([Symbol(v) => Symbol(v) for v in 50:50:300]),
                                 value = 50,
-                                step = 10,
+                                step = 50,
                                 )
                         ]
                     )
@@ -159,7 +159,7 @@ callback!(app,
         Input("y_range2i", "value"),
         Input("z_range1i", "value"),
         Input("z_range2i", "value")
-        ) do dropdown_value, return_value, vector_field, technique, ϵ, u_min, u_max,
+        ) do dropdown_value, return_value, vector_field, technique, n, u_min, u_max,
             v_min, v_max, x_min, x_max, y_min, y_max, z_min, z_max
         if dropdown_value == options_[1]
             try
@@ -168,9 +168,10 @@ callback!(app,
                 q = parse_function(vector_field, :x, :y, :z)
                 ϕ = parse_function(v_min, :u)
                 ψ = parse_function(v_max, :u)
-                value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; ϵ = ϵ, technique = technique)
+                value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; N = Int(n), technique = technique)
                 return html_h5("The value of the surface integral is $(@eval ($value($q, $p, $ϕ, $ψ))).")
             catch e
+                println(e)
                 return html_h5("Wrong input. Try again.")
             end
         else
@@ -183,7 +184,7 @@ callback!(app,
                 ψ = parse_function(y_max, :x)
                 ρ = parse_function(z_min, :x, :y)
                 η = parse_function(z_max, :x, :y)
-                value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; ϵ = ϵ, technique = technique)
+                value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; N = Int(n), technique = technique)
                 return html_h5("The value of the surface integral is $(@eval ($value($q, $ρ, $η, $ϕ, $ψ))).")
             catch e
                 return html_h5("Wrong input. Try again.")

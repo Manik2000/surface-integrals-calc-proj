@@ -121,19 +121,19 @@ html_div(id="plot_attributes",
         dcc_slider(
             id = "field_density",
             min = 0,
-            max = 10,
-            marks = Dict([Symbol(v) => Symbol(v) for v in 0:1:10]),
-            value = 5,
+            max = 8,
+            marks = Dict([Symbol(v) => Symbol(v) for v in 0:1:8]),
+            value = 4,
             step = 1,
             ),
             html_label(id="graph_accuracy_lab", "\$\$\\text{Choose the accuracy of plotting.}\$\$"),
             dcc_slider(
             id = "graph_accuracy",
-            min = 50,
-            max = 300,
-            marks = Dict([Symbol(v) => Symbol(v) for v in 50:50:300]),
-            value = 50,
-            step = 50,
+            min = 10,
+            max = 100,
+            marks = Dict([Symbol(v) => Symbol(v) for v in 10:10:100]),
+            value = 10,
+            step = 10,
             )
     ]
 ), html_footer("\$\$\\text{MIT License}. \\ \\text{MM, ML, MK.}\$\$", style=Dict("marginTop" => "3em", "textAlign" => "center"))
@@ -183,7 +183,7 @@ callback!(app,
                 q = parse_function(join(["[" * Fx, Fy, Fz * "]"], ", "), :x, :y, :z)
                 ϕ = parse_function(v_min, :u)
                 ψ = parse_function(v_max, :u)
-                value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; N = Int(n), technique = technique)
+                value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; N = Int(n ÷ 2), technique = technique)
                 value_ = @eval abs(($value($q, $p, $ϕ, $ψ)))
                 return html_h5("|Φ| = $(value_).", style=Dict("textAlign" => "center"))
             catch e
@@ -197,7 +197,7 @@ callback!(app,
                 ψ = parse_function(y_max, :x)
                 ρ = parse_function(z_min, :x, :y)
                 η = parse_function(z_max, :x, :y)
-                value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; N = Int(n), technique = technique)
+                value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; N = Int(n ÷ 2), technique = technique)
                 value_ = @eval abs(($value($q, $ρ, $η, $ϕ, $ψ)))
                 return html_h5("|Φ| = $(value_).", style=Dict("textAlign" => "center"))
             catch e
@@ -231,6 +231,7 @@ callback!(app,
         ) do r1, r2, r3, dropdown_value, N, u_min, u_max, v_min, v_max,
             x_min, x_max, y_min, y_max, z_min, z_max, F1, F2, F3, density
 
+            N *= 2
             if dropdown_value == options_[1] # _______________parametric
 
                     try

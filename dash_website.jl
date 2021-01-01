@@ -121,9 +121,9 @@ html_div(id="plot_attributes",
         dcc_slider(
             id = "field_density",
             min = 0,
-            max = 8,
-            marks = Dict([Symbol(v) => Symbol(v) for v in 0:1:8]),
-            value = 4,
+            max = ,10
+            marks = Dict([Symbol(v) => Symbol(v) for v in 0:1:10]),
+            value = 5,
             step = 1,
             ),
             html_label(id="graph_accuracy_lab", "\$\$\\text{Choose the accuracy of plotting.}\$\$"),
@@ -132,7 +132,7 @@ html_div(id="plot_attributes",
             min = 10,
             max = 100,
             marks = Dict([Symbol(v) => Symbol(v) for v in 10:10:100]),
-            value = 10,
+            value = 20,
             step = 10,
             )
     ]
@@ -233,7 +233,6 @@ callback!(app,
         ) do n_clicks, r1, r2, r3, dropdown_value, N, u_min, u_max, v_min, v_max,
             x_min, x_max, y_min, y_max, z_min, z_max, F1, F2, F3, density
 
-            N *= 2
             if dropdown_value == options_[1] # _______________parametric
 
                     try

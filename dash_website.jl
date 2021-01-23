@@ -184,7 +184,7 @@ callback!(app,
                 q = parse_function(join(["[" * Fx, Fy, Fz * "]"], ", "), :x, :y, :z)
                 ϕ = parse_function(v_min, :u)
                 ψ = parse_function(v_max, :u)
-                value(f, g, a, b) = Φ(f, g, (u_min, u_max), a, b; N = Int(n ÷ 2), technique = technique)
+                value(f, g, a, b) = round_float(Φ(f, g, (u_min, u_max), a, b; N = Int(n ÷ 2), technique = technique), 1e-3)
                 value_ = @eval abs(($value($q, $p, $ϕ, $ψ)))
                 return html_h5("|Φ| = $(value_).", style=Dict("textAlign" => "center"))
             catch e
@@ -198,7 +198,7 @@ callback!(app,
                 ψ = parse_function(y_max, :x)
                 ρ = parse_function(z_min, :x, :y)
                 η = parse_function(z_max, :x, :y)
-                value(f, a, b, c, d) = Φ(f, (x_min, x_max), a, b, c, d; N = Int(n ÷ 2), technique = technique)
+                value(f, a, b, c, d) = round_float(Φ(f, (x_min, x_max), a, b, c, d; N = Int(n ÷ 2), technique = technique), 1e-3)
                 value_ = @eval abs(($value($q, $ρ, $η, $ϕ, $ψ)))
                 return html_h5("|Φ| = $(value_).", style=Dict("textAlign" => "center"))
             catch e

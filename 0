@@ -1,0 +1,9 @@
+\documentclass{article}
+\pagestyle{empty}
+\usepackage[dvips]{color}
+\begin{document}
+\[
+\color[rgb]{0.000,0.000,0.000} {
+\mathbf{F}=[\operatorname{cosh}{y},0,\operatorname{sinh}{x}]\quad\mathbf{r}=[u,v,u+v^2]}
+\]
+\end{document}

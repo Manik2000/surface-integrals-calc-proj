@@ -3,7 +3,7 @@ module IntegralUtils
 using LinearAlgebra
 using Decimals
 
-export parse_function, parse_num, Φ
+export parse_function, parse_num, Φ, transform, divergence, round_float
 
 
 """
@@ -641,7 +641,7 @@ function Φ(F::Function, X::Tuple{Real, Real}, ρ::Function, η::Function, ϕ::F
     else
         throw(ArgumentError("Invalid technique name."))
     end
-    return round_float(surface_integral(N), 1e-3)
+    return abs(surface_integral(N))
 end
 
 
@@ -666,7 +666,7 @@ function Φ(F::Function, r::Function, U::Tuple{Real, Real}, ϕ::Function, ψ::Fu
     else
         throw(ArgumentError("Invalid technique name."))
     end
-    return round_float(surface_integral(N), 1e-3)
+    return abs(surface_integral(N))
 end
 
 

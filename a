@@ -1,9 +1,0 @@
-\documentclass{article}
-\pagestyle{empty}
-\usepackage[dvips]{color}
-\begin{document}
-\[
-\color[rgb]{0.000,0.000,0.000} {
-\mathbf{F}=[y^2,x^2,z^4]\quad\mathbf{r}=[u\sin{v},u\cos{v},u]}
-\]
-\end{document}
